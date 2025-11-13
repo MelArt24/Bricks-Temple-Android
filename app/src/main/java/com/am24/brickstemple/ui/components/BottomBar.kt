@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.Color
 fun BottomBar(navController: NavController) {
 
     val items = listOf(
-        Screen.Home,
+        Screen.ProductList,
         Screen.Cart,
         Screen.Wishlist,
         Screen.Profile
@@ -34,13 +34,13 @@ fun BottomBar(navController: NavController) {
                     navController.navigate(screen.route) {
                         launchSingleTop = true
                         restoreState = true
-                        popUpTo(Screen.Home.route) { saveState = true }
+                        popUpTo(Screen.ProductList.route) { saveState = true }
                     }
                 },
                 icon = {
                     Icon(
                         imageVector = when (screen) {
-                            Screen.Home -> Icons.Default.Home
+                            Screen.ProductList -> Icons.Default.Home
                             Screen.Cart -> Icons.Default.ShoppingCart
                             Screen.Wishlist -> Icons.Default.Favorite
                             Screen.Profile -> Icons.Default.Person
@@ -53,7 +53,7 @@ fun BottomBar(navController: NavController) {
                 label = {
                     Text(
                         text = when (screen) {
-                            Screen.Home -> "Home"
+                            Screen.ProductList -> "Home"
                             Screen.Cart -> "Cart"
                             Screen.Wishlist -> "Wishlist"
                             Screen.Profile -> "Profile"
