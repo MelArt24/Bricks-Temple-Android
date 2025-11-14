@@ -27,7 +27,10 @@ fun AppNavGraph(
         navController = navController,
         startDestination = Screen.ProductList.route
     ) {
-        composable(Screen.ProductList.route) { ProductListScreen() }
+        composable(Screen.ProductList.route) { ProductListScreen(
+            navController = navController,
+            paddingValues = paddingValues
+        ) }
         composable(Screen.Cart.route) { CartScreen(navController) }
         composable(Screen.Wishlist.route) { WishlistScreen(navController) }
         composable(Screen.Profile.route) { ProfileScreen() }
