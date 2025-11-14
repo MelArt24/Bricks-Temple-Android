@@ -10,9 +10,14 @@ import com.am24.brickstemple.ui.navigation.Screen
 
 @Composable
 fun DrawerContent(
+    userName: String?,
+    userEmail: String?,
     onNavigate: (String) -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onLogin: () -> Unit
 ) {
+    val isLoggedIn = userName != null
+
     Column(
         modifier = Modifier
             .fillMaxHeight()
@@ -22,17 +27,25 @@ fun DrawerContent(
     ) {
 
         Text(
-            text = "Bricks Temple",
+            text = userName ?: "Guest User",
             style = MaterialTheme.typography.headlineSmall
+        )
+
+        Text(
+            text = userEmail ?: "Not logged in",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        NavigationDrawerItem(
-            label = { Text("Order history") },
-            selected = false,
-            onClick = { onNavigate(Screen.OrderHistory.route) }
-        )
+        if (isLoggedIn) {
+            NavigationDrawerItem(
+                label = { Text("Order history") },
+                selected = false,
+                onClick = { onNavigate(Screen.OrderHistory.route) }
+            )
+        }
 
         NavigationDrawerItem(
             label = { Text("Settings") },
@@ -48,10 +61,18 @@ fun DrawerContent(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        NavigationDrawerItem(
-            label = { Text("Logout", color = MaterialTheme.colorScheme.error) },
-            selected = false,
-            onClick = onLogout
-        )
+        if (isLoggedIn) {
+            NavigationDrawerItem(
+                label = { Text("Logout", color = MaterialTheme.colorScheme.error) },
+                selected = false,
+                onClick = onLogout
+            )
+        } else {
+            NavigationDrawerItem(
+                label = { Text("Login") },
+                selected = false,
+                onClick = onLogin
+            )
+        }
     }
 }

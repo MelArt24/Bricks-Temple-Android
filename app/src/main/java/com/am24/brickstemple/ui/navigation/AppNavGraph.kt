@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.am24.brickstemple.ui.screens.about.AboutScreen
 import com.am24.brickstemple.ui.screens.cart.CartScreen
+import com.am24.brickstemple.ui.screens.login.LoginScreen
 import com.am24.brickstemple.ui.screens.orders.OrderHistoryScreen
 import com.am24.brickstemple.ui.screens.product.ProductListScreen
 import com.am24.brickstemple.ui.screens.wishlist.WishlistScreen
@@ -29,5 +30,6 @@ fun AppNavGraph(
         composable(Screen.OrderHistory.route) { OrderHistoryScreen() }
         composable(Screen.Settings.route) { SettingsScreen() }
         composable(Screen.About.route) { AboutScreen() }
+        composable(Screen.Login.route) { LoginScreen() }
     }
 }
