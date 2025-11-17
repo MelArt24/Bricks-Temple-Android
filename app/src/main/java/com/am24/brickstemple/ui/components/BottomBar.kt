@@ -21,20 +21,41 @@ fun BottomBar(navController: NavController) {
     )
 
     val navBackStackEntry = navController.currentBackStackEntryAsState().value
-    val currentRoute = navBackStackEntry?.destination?.route
+
+    val currentRoute = navBackStackEntry
+        ?.destination
+        ?.route
+        ?.substringBefore("/")
+
 
     NavigationBar {
         items.forEach { screen ->
 
-            val selected = currentRoute == screen.route
+            val selected = currentRoute == screen.route.substringBefore("/")
 
             NavigationBarItem(
                 selected = selected,
                 onClick = {
-                    navController.navigate(screen.route) {
-                        launchSingleTop = true
-                        restoreState = true
-                        popUpTo(Screen.ProductList.route) { saveState = true }
+                    if (screen == Screen.ProductList) {
+                        val popped = navController.popBackStack(
+                            Screen.ProductList.route,
+                            inclusive = false
+                        )
+
+                        if (!popped) {
+                            navController.navigate(Screen.ProductList.route) {
+                                launchSingleTop = true
+                            }
+                        }
+                    } else {
+                        navController.navigate(screen.route) {
+                            launchSingleTop = true
+                            restoreState = true
+
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                        }
                     }
                 },
                 icon = {
