@@ -22,7 +22,9 @@ import com.am24.brickstemple.ui.components.BottomBar
 import com.am24.brickstemple.ui.components.DrawerContent
 import com.am24.brickstemple.ui.components.TopBar
 import com.am24.brickstemple.ui.navigation.Screen
-import com.am24.brickstemple.ui.navigation.shouldShowMenu
+import com.am24.brickstemple.ui.navigation.shouldShowBackArrow
+import com.am24.brickstemple.ui.navigation.shouldShowBottomBar
+import com.am24.brickstemple.ui.navigation.shouldShowTopBar
 import com.am24.brickstemple.ui.theme.BricksTempleTheme
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
 import com.am24.brickstemple.ui.viewmodels.UserViewModel
@@ -79,18 +81,21 @@ fun App() {
         ) {
             Scaffold(
                 topBar = {
-                    TopBar(
-                        showMenu = shouldShowMenu(currentRoute),
-                        onMenuClick = { scope.launch { drawerState.open() } },
-                        onBackClick = { navController.popBackStack() },
-                        onSearchChange = { query -> /* TODO handle search */ }
-                    )
+                    if (shouldShowTopBar(currentRoute)) {
+                        TopBar(
+                            showMenu = !shouldShowBackArrow(currentRoute),
+                            onMenuClick = { scope.launch { drawerState.open() } },
+                            onBackClick = { navController.popBackStack() },
+                            onSearchChange = { }
+                        )
+                    }
                 },
                 bottomBar = {
-                    if (shouldShowMenu(currentRoute)) {
+                    if (shouldShowBottomBar(currentRoute) && shouldShowTopBar(currentRoute)) {
                         BottomBar(navController)
                     }
                 }
+
             ) { innerPadding ->
                 AppNavGraph(
                     navController = navController,
