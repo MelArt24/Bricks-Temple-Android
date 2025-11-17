@@ -95,7 +95,7 @@ fun ProductListScreen(
                     navController.navigate(Screen.ProductDetails.pass(product.id))
                 },
                 onMoreClick = {
-                    navController.navigate(Screen.ProductCategory.pass("sets"))
+                    navController.navigate(Screen.ProductCategory.pass("minifigures"))
                 },
                 onAddToCartClick = { product -> toggleCart(product) },
                 onFavoriteClick = { product -> toggleFavorite(product) }
@@ -114,7 +114,7 @@ fun ProductListScreen(
                     navController.navigate(Screen.ProductDetails.pass(product.id))
                 },
                 onMoreClick = {
-                    navController.navigate(Screen.ProductCategory.pass("sets"))
+                    navController.navigate(Screen.ProductCategory.pass("details"))
                 },
                 onAddToCartClick = { product -> toggleCart(product) },
                 onFavoriteClick = { product -> toggleFavorite(product) }
@@ -133,7 +133,7 @@ fun ProductListScreen(
                     navController.navigate(Screen.ProductDetails.pass(product.id))
                 },
                 onMoreClick = {
-                    navController.navigate(Screen.ProductCategory.pass("sets"))
+                    navController.navigate(Screen.ProductCategory.pass("polybags"))
                 },
                 onAddToCartClick = { product -> toggleCart(product) },
                 onFavoriteClick = { product -> toggleFavorite(product) }
@@ -152,7 +152,7 @@ fun ProductListScreen(
                     navController.navigate(Screen.ProductDetails.pass(product.id))
                 },
                 onMoreClick = {
-                    navController.navigate(Screen.ProductCategory.pass("sets"))
+                    navController.navigate(Screen.ProductCategory.pass("other"))
                 },
                 onAddToCartClick = { product -> toggleCart(product) },
                 onFavoriteClick = { product -> toggleFavorite(product) }
