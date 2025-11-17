@@ -44,9 +44,9 @@ fun ProductItemCard(
             contentDescription = name,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(110.dp)
+                .aspectRatio(1f)
                 .clip(RoundedCornerShape(12.dp)),
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Fit
         )
 
         Spacer(modifier = Modifier.height(4.dp))

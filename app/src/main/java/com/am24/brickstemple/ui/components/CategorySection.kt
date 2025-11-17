@@ -12,12 +12,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 data class ProductDemo(
+    val id: Int,
     val name: String,
     val price: String,
     val image: String,
-    val inCart: Boolean,
-    val isFavorite: Boolean
-)
+    val inCart: Boolean = false,
+    val isFavorite: Boolean = false,
+    )
 
 @Composable
 fun CategorySection(

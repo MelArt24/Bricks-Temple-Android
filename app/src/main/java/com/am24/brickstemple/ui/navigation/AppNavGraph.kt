@@ -17,20 +17,25 @@ import com.am24.brickstemple.ui.screens.product.ProductListScreen
 import com.am24.brickstemple.ui.screens.wishlist.WishlistScreen
 import com.am24.brickstemple.ui.screens.profile.ProfileScreen
 import com.am24.brickstemple.ui.screens.settings.SettingsScreen
+import com.am24.brickstemple.ui.viewmodels.ProductViewModel
 
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    productViewModel: ProductViewModel
 ) {
     NavHost(
         navController = navController,
         startDestination = Screen.ProductList.route
     ) {
-        composable(Screen.ProductList.route) { ProductListScreen(
-            navController = navController,
-            paddingValues = paddingValues
-        ) }
+        composable(Screen.ProductList.route) {
+            ProductListScreen(
+                navController = navController,
+                paddingValues = paddingValues,
+                productViewModel = productViewModel
+            )
+        }
         composable(Screen.Cart.route) { CartScreen(navController) }
         composable(Screen.Wishlist.route) { WishlistScreen(navController) }
         composable(Screen.Profile.route) { ProfileScreen() }

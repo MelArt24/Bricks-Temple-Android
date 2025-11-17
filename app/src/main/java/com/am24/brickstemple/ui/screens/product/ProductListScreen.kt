@@ -4,57 +4,60 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.am24.brickstemple.data.remote.dto.ProductDto
 import com.am24.brickstemple.ui.components.CategorySection
 import com.am24.brickstemple.ui.components.ProductDemo
 import com.am24.brickstemple.ui.navigation.Screen
+import com.am24.brickstemple.ui.viewmodels.ProductViewModel
 
 @Composable
 fun ProductListScreen(
     navController: NavController,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    productViewModel: ProductViewModel
 ) {
+    val sections = productViewModel.sections.collectAsState().value
 
-    // for demonstration
-    val demoItems = remember {
-        mutableStateListOf(
-            ProductDemo(
-                name = "LEGO Star Wars 75419 “Death Star”",
-                price = "$100",
-                image = "https://www.lego.com/cdn/cs/set/assets/blt725a94446f56dbe2/75419_Prod.png",
-                isFavorite = false,
-                inCart = false
-            ),
-            ProductDemo(
-                name = "LEGO Star Wars 42112 Technic",
-                price = "$150",
-                image = "https://www.lego.com/cdn/cs/set/assets/blt725a94446f56dbe2/75419_Prod.png",
-                isFavorite = true,
-                inCart = true
-            )
-        )
-    }
+    val setsState = sections["set"]
+    val minifigsState = sections["minifigure"]
+    val detailsState = sections["detail"]
+    val polybagsState = sections["polybag"]
+    val othersState = sections["other"]
+
+    val favoriteState = remember { mutableStateMapOf<Int, Boolean>() }
+    val cartState = remember { mutableStateMapOf<Int, Boolean>() }
 
     fun toggleFavorite(product: ProductDemo) {
-        val index = demoItems.indexOf(product)
-        if (index != -1) {
-            demoItems[index] = demoItems[index].copy(
-                isFavorite = !demoItems[index].isFavorite
-            )
-        }
+        val id = product.id
+        val current = favoriteState[id] ?: product.isFavorite
+        favoriteState[id] = !current
     }
 
     fun toggleCart(product: ProductDemo) {
-        val index = demoItems.indexOf(product)
-        if (index != -1) {
-            demoItems[index] = demoItems[index].copy(
-                inCart = !demoItems[index].inCart
-            )
-        }
+        val id = product.id
+        val current = cartState[id] ?: product.inCart
+        cartState[id] = !current
+    }
+
+    fun mapDtoToDemo(dto: ProductDto): ProductDemo {
+        val id = dto.id
+        val fav = favoriteState[id] ?: false
+        val inCart = cartState[id] ?: false
+
+        return ProductDemo(
+            id = dto.id,
+            name = dto.name,
+            price = "${dto.price}₴",
+            image = dto.image ?: "",
+            isFavorite = fav,
+            inCart = inCart
+        )
     }
 
     LazyColumn(
@@ -62,11 +65,13 @@ fun ProductListScreen(
         contentPadding = PaddingValues(16.dp)
     ) {
         item {
+            val items = setsState?.products?.map { mapDtoToDemo(it) } ?: emptyList()
+
             CategorySection(
                 title = "Sets",
-                items = demoItems,
+                items = items,
                 onItemClick = { product ->
-                    navController.navigate(Screen.ProductDetails.pass(1))
+                    navController.navigate(Screen.ProductDetails.pass(product.id))
                 },
                 onMoreClick = {
                     navController.navigate(Screen.ProductCategory.pass("sets"))
@@ -77,47 +82,56 @@ fun ProductListScreen(
         }
 
         item {
+            val items = minifigsState?.products?.map { mapDtoToDemo(it) } ?: emptyList()
+
             CategorySection(
                 title = "Minifigures",
-                items = demoItems,
+                items = items,
                 onItemClick = { },
                 onMoreClick = { },
-                onAddToCartClick = { toggleCart(it) },
-                onFavoriteClick = { toggleFavorite(it) }
+                onAddToCartClick = { product -> toggleCart(product) },
+                onFavoriteClick = { product -> toggleFavorite(product) }
             )
         }
 
         item {
+            val items = detailsState?.products?.map { mapDtoToDemo(it) } ?: emptyList()
+
             CategorySection(
                 title = "Details",
-                items = demoItems,
+                items = items,
                 onItemClick = { },
                 onMoreClick = { },
-                onAddToCartClick = { toggleCart(it) },
-                onFavoriteClick = { toggleFavorite(it) }
+                onAddToCartClick = { product -> toggleCart(product) },
+                onFavoriteClick = { product -> toggleFavorite(product) }
             )
         }
 
         item {
+            val items = polybagsState?.products?.map { mapDtoToDemo(it) } ?: emptyList()
+
             CategorySection(
                 title = "Polybags",
-                items = demoItems,
+                items = items,
                 onItemClick = { },
                 onMoreClick = { },
-                onAddToCartClick = { toggleCart(it) },
-                onFavoriteClick = { toggleFavorite(it) }
+                onAddToCartClick = { product -> toggleCart(product) },
+                onFavoriteClick = { product -> toggleFavorite(product) }
             )
         }
 
         item {
+            val items = othersState?.products?.map { mapDtoToDemo(it) } ?: emptyList()
+
             CategorySection(
                 title = "Other",
-                items = demoItems,
+                items = items,
                 onItemClick = { },
                 onMoreClick = { },
-                onAddToCartClick = { toggleCart(it) },
-                onFavoriteClick = { toggleFavorite(it) }
+                onAddToCartClick = { product -> toggleCart(product) },
+                onFavoriteClick = { product -> toggleFavorite(product) }
             )
         }
     }
+
 }
