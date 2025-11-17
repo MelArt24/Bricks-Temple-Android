@@ -1,8 +1,10 @@
 package com.am24.brickstemple.ui.navigation
 
 fun shouldShowMenu(route: String?): Boolean {
-    return route == Screen.ProductList.route ||
-            route == Screen.Cart.route ||
-            route == Screen.Wishlist.route ||
-            route == Screen.Profile.route           // ?
+    return when (route) {
+        Screen.ProductDetails.route -> false
+        Screen.Login.route -> false
+        Screen.Register.route -> false
+        else -> true
+    }
 }

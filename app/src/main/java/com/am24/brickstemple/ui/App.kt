@@ -87,7 +87,9 @@ fun App() {
                     )
                 },
                 bottomBar = {
-                    BottomBar(navController)
+                    if (shouldShowMenu(currentRoute)) {
+                        BottomBar(navController)
+                    }
                 }
             ) { innerPadding ->
                 AppNavGraph(

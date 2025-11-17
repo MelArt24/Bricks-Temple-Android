@@ -87,8 +87,12 @@ fun ProductListScreen(
             CategorySection(
                 title = "Minifigures",
                 items = items,
-                onItemClick = { },
-                onMoreClick = { },
+                onItemClick = { product ->
+                    navController.navigate(Screen.ProductDetails.pass(product.id))
+                },
+                onMoreClick = {
+                    navController.navigate(Screen.ProductCategory.pass("sets"))
+                },
                 onAddToCartClick = { product -> toggleCart(product) },
                 onFavoriteClick = { product -> toggleFavorite(product) }
             )
@@ -100,8 +104,12 @@ fun ProductListScreen(
             CategorySection(
                 title = "Details",
                 items = items,
-                onItemClick = { },
-                onMoreClick = { },
+                onItemClick = { product ->
+                    navController.navigate(Screen.ProductDetails.pass(product.id))
+                },
+                onMoreClick = {
+                    navController.navigate(Screen.ProductCategory.pass("sets"))
+                },
                 onAddToCartClick = { product -> toggleCart(product) },
                 onFavoriteClick = { product -> toggleFavorite(product) }
             )
@@ -113,8 +121,12 @@ fun ProductListScreen(
             CategorySection(
                 title = "Polybags",
                 items = items,
-                onItemClick = { },
-                onMoreClick = { },
+                onItemClick = { product ->
+                    navController.navigate(Screen.ProductDetails.pass(product.id))
+                },
+                onMoreClick = {
+                    navController.navigate(Screen.ProductCategory.pass("sets"))
+                },
                 onAddToCartClick = { product -> toggleCart(product) },
                 onFavoriteClick = { product -> toggleFavorite(product) }
             )
@@ -126,8 +138,12 @@ fun ProductListScreen(
             CategorySection(
                 title = "Other",
                 items = items,
-                onItemClick = { },
-                onMoreClick = { },
+                onItemClick = { product ->
+                    navController.navigate(Screen.ProductDetails.pass(product.id))
+                },
+                onMoreClick = {
+                    navController.navigate(Screen.ProductCategory.pass("sets"))
+                },
                 onAddToCartClick = { product -> toggleCart(product) },
                 onFavoriteClick = { product -> toggleFavorite(product) }
             )

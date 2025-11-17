@@ -46,7 +46,10 @@ fun AppNavGraph(
 
         composable(Screen.ProductDetails.route) { backStack ->
             val id = backStack.arguments?.getString("id")?.toInt()
-            ProductDetailsScreen(id)
+            ProductDetailsScreen(
+                id = id,
+                paddingValues = paddingValues
+            )
         }
 
         composable(Screen.ProductCategory.route) { backStack ->
