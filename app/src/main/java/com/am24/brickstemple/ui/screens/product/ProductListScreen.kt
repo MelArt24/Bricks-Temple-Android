@@ -65,7 +65,9 @@ fun ProductListScreen(
         contentPadding = PaddingValues(16.dp)
     ) {
         item {
-            val items = setsState?.products?.map { mapDtoToDemo(it) } ?: emptyList()
+            val items = setsState?.products
+                ?.map { mapDtoToDemo(it) }
+                ?.take(5) ?: emptyList()
 
             CategorySection(
                 title = "Sets",
@@ -82,7 +84,9 @@ fun ProductListScreen(
         }
 
         item {
-            val items = minifigsState?.products?.map { mapDtoToDemo(it) } ?: emptyList()
+            val items = minifigsState?.products
+                ?.map { mapDtoToDemo(it) }
+                ?.take(5) ?: emptyList()
 
             CategorySection(
                 title = "Minifigures",
@@ -99,7 +103,9 @@ fun ProductListScreen(
         }
 
         item {
-            val items = detailsState?.products?.map { mapDtoToDemo(it) } ?: emptyList()
+            val items = detailsState?.products
+                ?.map { mapDtoToDemo(it) }
+                ?.take(5) ?: emptyList()
 
             CategorySection(
                 title = "Details",
@@ -116,7 +122,9 @@ fun ProductListScreen(
         }
 
         item {
-            val items = polybagsState?.products?.map { mapDtoToDemo(it) } ?: emptyList()
+            val items = polybagsState?.products
+                ?.map { mapDtoToDemo(it) }
+                ?.take(5) ?: emptyList()
 
             CategorySection(
                 title = "Polybags",
@@ -133,7 +141,9 @@ fun ProductListScreen(
         }
 
         item {
-            val items = othersState?.products?.map { mapDtoToDemo(it) } ?: emptyList()
+            val items = othersState?.products
+                ?.map { mapDtoToDemo(it) }
+                ?.take(5) ?: emptyList()
 
             CategorySection(
                 title = "Other",
