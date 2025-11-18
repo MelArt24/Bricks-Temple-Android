@@ -15,7 +15,7 @@ data class ProductUiState(
     val error: String? = null,
 )
 
-class ProductViewModel(
+open class ProductViewModel(
     private val repo: ProductRepository
 ) : ViewModel() {
 
