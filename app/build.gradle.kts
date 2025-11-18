@@ -49,7 +49,6 @@ jacoco {
 }
 
 tasks.withType<Test> {
-    useJUnitPlatform()
     finalizedBy("jacocoTestReport")
 }
 
