@@ -6,7 +6,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class ProductRepository(
+open class ProductRepository(
     private val api: ProductApiService,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
@@ -35,7 +35,7 @@ class ProductRepository(
             api.getFiltered(type, category, search, minPrice, maxPrice, year)
         }
 
-    suspend fun getById(id: Int): ProductDto =
+    open suspend fun getById(id: Int): ProductDto =
         withContext(dispatcher) { api.getProductById(id) }
 
     suspend fun getPaged(page: Int, limit: Int): List<ProductDto> =
