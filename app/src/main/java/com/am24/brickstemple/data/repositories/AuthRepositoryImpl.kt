@@ -24,7 +24,7 @@ import kotlinx.serialization.json.jsonPrimitive
 
 class AuthRepositoryImpl(
     private val client: HttpClient,
-    private val appContext: Context
+    private val appContext: Context? = null
 ) : AuthRepository {
 
     private val BASE_URL = "https://bricks-temple-server.onrender.com/auth"
@@ -46,7 +46,9 @@ class AuthRepositoryImpl(
         AuthSession.updateToken(data.token)
         AuthSession.updateEmail(email)
 
-        AuthStorage.save(appContext, data.token, email, null)
+        appContext?.let {
+            AuthStorage.save(it, data.token, email, null)
+        }
 
         return data.token
     }

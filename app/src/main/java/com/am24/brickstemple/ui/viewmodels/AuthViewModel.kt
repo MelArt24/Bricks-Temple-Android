@@ -101,7 +101,7 @@ class AuthViewModel(
         }
     }
 
-    private fun validateLogin(email: String, password: String): String? {
+    fun validateLogin(email: String, password: String): String? {
         if (email.isBlank() || password.isBlank())
             return "Email and password cannot be empty"
         if (!email.contains("@"))
@@ -109,7 +109,7 @@ class AuthViewModel(
         return null
     }
 
-    private fun validateRegister(username: String, email: String, password: String): String? {
+    fun validateRegister(username: String, email: String, password: String): String? {
         if (username.isBlank() || email.isBlank() || password.isBlank())
             return "All fields are required"
         if (username.length < 2)
