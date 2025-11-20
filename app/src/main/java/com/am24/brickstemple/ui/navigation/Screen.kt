@@ -25,4 +25,6 @@ sealed class Screen(val route: String) {
         fun pass(id: Int) = "order_details/$id"
     }
 
+    object Splash : Screen("splash")
+
 }

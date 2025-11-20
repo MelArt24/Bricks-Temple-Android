@@ -19,6 +19,7 @@ import com.am24.brickstemple.ui.screens.product.ProductListScreen
 import com.am24.brickstemple.ui.screens.wishlist.WishlistScreen
 import com.am24.brickstemple.ui.screens.profile.ProfileScreen
 import com.am24.brickstemple.ui.screens.settings.SettingsScreen
+import com.am24.brickstemple.ui.screens.splash.SplashScreen
 import com.am24.brickstemple.ui.viewmodels.AuthViewModel
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
 
@@ -31,7 +32,7 @@ fun AppNavGraph(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.ProductList.route
+        startDestination = Screen.Splash.route
     ) {
         composable(Screen.ProductList.route) {
             ProductListScreen(
@@ -74,6 +75,11 @@ fun AppNavGraph(
             val id = backStack.arguments?.getString("id")?.toInt()
             ViewDetailsScreen(id)
         }
+
+        composable(Screen.Splash.route) {
+            SplashScreen(navController)
+        }
+
 
     }
 }
