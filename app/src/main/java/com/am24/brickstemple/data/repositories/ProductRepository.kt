@@ -1,4 +1,4 @@
-package com.am24.brickstemple.data.repository
+package com.am24.brickstemple.data.repositories
 
 import com.am24.brickstemple.data.remote.ProductApiService
 import com.am24.brickstemple.data.remote.dto.ProductDto

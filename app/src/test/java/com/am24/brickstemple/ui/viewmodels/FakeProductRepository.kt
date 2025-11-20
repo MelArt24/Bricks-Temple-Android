@@ -2,7 +2,7 @@ package com.am24.brickstemple.ui.viewmodels
 
 import com.am24.brickstemple.data.remote.ProductApiService
 import com.am24.brickstemple.data.remote.dto.ProductDto
-import com.am24.brickstemple.data.repository.ProductRepository
+import com.am24.brickstemple.data.repositories.ProductRepository
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.Dispatchers
 

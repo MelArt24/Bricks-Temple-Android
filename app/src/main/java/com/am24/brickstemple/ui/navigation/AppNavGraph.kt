@@ -2,6 +2,8 @@ package com.am24.brickstemple.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -17,13 +19,15 @@ import com.am24.brickstemple.ui.screens.product.ProductListScreen
 import com.am24.brickstemple.ui.screens.wishlist.WishlistScreen
 import com.am24.brickstemple.ui.screens.profile.ProfileScreen
 import com.am24.brickstemple.ui.screens.settings.SettingsScreen
+import com.am24.brickstemple.ui.viewmodels.AuthViewModel
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
 
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
     paddingValues: PaddingValues,
-    productViewModel: ProductViewModel
+    productViewModel: ProductViewModel,
+    authViewModel: AuthViewModel
 ) {
     NavHost(
         navController = navController,
@@ -38,11 +42,11 @@ fun AppNavGraph(
         }
         composable(Screen.Cart.route) { CartScreen(navController) }
         composable(Screen.Wishlist.route) { WishlistScreen(navController) }
-        composable(Screen.Profile.route) { ProfileScreen() }
+        composable(Screen.Profile.route) { ProfileScreen(navController, authViewModel) }
         composable(Screen.OrderHistory.route) { OrderHistoryScreen() }
         composable(Screen.Settings.route) { SettingsScreen() }
         composable(Screen.About.route) { AboutScreen() }
-        composable(Screen.Login.route) { LoginScreen() }
+        composable(Screen.Login.route) { LoginScreen(navController, authViewModel) }
 
         composable(Screen.ProductDetails.route) { backStack ->
             val id = backStack.arguments?.getString("id")?.toInt()
@@ -63,7 +67,7 @@ fun AppNavGraph(
         }
 
         composable(Screen.Register.route) {
-            RegisterScreen()
+            RegisterScreen(navController, authViewModel)
         }
 
         composable(Screen.ViewDetails.route) { backStack ->

@@ -1,6 +1,5 @@
-package com.am24.brickstemple.data.repository
+package com.am24.brickstemple.data.repositories
 
-import com.am24.brickstemple.ui.viewmodels.MainDispatcherRule
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest

@@ -17,7 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.am24.brickstemple.data.repository.ProductRepository
+import com.am24.brickstemple.data.repositories.ProductRepository
 import com.am24.brickstemple.ui.viewmodels.ProductDetailsViewModel
 import com.am24.brickstemple.data.remote.ProductApiService
 import com.am24.brickstemple.data.remote.KtorClientProvider

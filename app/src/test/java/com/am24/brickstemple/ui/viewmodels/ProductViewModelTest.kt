@@ -1,7 +1,7 @@
 package com.am24.brickstemple.ui.viewmodels
 
-import com.am24.brickstemple.data.repository.FakeProductApiService
-import com.am24.brickstemple.data.repository.ProductRepository
+import com.am24.brickstemple.data.repositories.FakeProductApiService
+import com.am24.brickstemple.data.repositories.ProductRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
