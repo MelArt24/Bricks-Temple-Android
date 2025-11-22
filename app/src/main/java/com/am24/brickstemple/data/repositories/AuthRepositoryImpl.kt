@@ -46,8 +46,11 @@ class AuthRepositoryImpl(
         AuthSession.updateToken(data.token)
         AuthSession.updateEmail(email)
 
+        val user = getCurrentUser()
+        AuthSession.updateUsername(user.username)
+
         appContext?.let {
-            AuthStorage.save(it, data.token, email, null)
+            AuthStorage.save(it, data.token, email, user.username)
         }
 
         return data.token

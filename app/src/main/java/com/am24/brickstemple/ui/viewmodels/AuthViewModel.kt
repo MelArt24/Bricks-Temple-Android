@@ -10,6 +10,7 @@ import com.am24.brickstemple.data.repositories.AuthRepositoryImpl
 import com.am24.brickstemple.domain.repositories.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -20,7 +21,8 @@ data class AuthFormState(
     val password: String = "",
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isLoggedIn: Boolean = false
 )
 
 class AuthViewModel(
@@ -32,6 +34,9 @@ class AuthViewModel(
 
     private val _registerState = MutableStateFlow(AuthFormState())
     val registerState: StateFlow<AuthFormState> = _registerState
+
+    private val _uiState = MutableStateFlow(AuthFormState())
+    val uiState: StateFlow<AuthFormState> = _uiState.asStateFlow()
 
     fun onLoginEmailChange(value: String) {
         _loginState.update { it.copy(email = value, errorMessage = null) }
@@ -55,6 +60,9 @@ class AuthViewModel(
 
             try {
                 authRepository.login(state.email, state.password)
+
+                loadCurrentUser()
+
                 _loginState.update { it.copy(isSuccess = true, isLoading = false) }
 
             } catch (e: Exception) {
@@ -141,13 +149,31 @@ class AuthViewModel(
     }
 
     fun loadCurrentUser() {
+        if (!AuthSession.isLoggedIn()) {
+            _uiState.value = AuthFormState(isLoggedIn = false)
+            return
+        }
+
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+
             try {
-                val user = authRepository.getCurrentUser()
-                AuthSession.updateEmail(user.email)
-                AuthSession.updateUsername(user.username)
-            } catch (e: Exception) {
-                println("Failed to load user info: ${e.message}")
+                val me = authRepository.getCurrentUser()
+
+                AuthSession.updateUsername(me.username)
+                AuthSession.updateEmail(me.email)
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        username = me.username,
+                        email = me.email,
+                        isLoggedIn = true
+                    )
+                }
+
+            } catch (_: Exception) {
+                _uiState.update { it.copy(isLoading = false, isLoggedIn = false) }
             }
         }
     }

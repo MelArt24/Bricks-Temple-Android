@@ -16,7 +16,8 @@ fun DrawerContent(
     onLogout: () -> Unit,
     onLogin: () -> Unit
 ) {
-    val isLoggedIn = userName != null
+    val isLoading = userName == "Loading..."
+    val isLoggedIn = userName != null && !isLoading
 
     Column(
         modifier = Modifier
@@ -27,12 +28,20 @@ fun DrawerContent(
     ) {
 
         Text(
-            text = userName ?: "Guest User",
+            text = when {
+                isLoading -> "Loading..."
+                userName != null -> userName
+                else -> "Guest User"
+            },
             style = MaterialTheme.typography.headlineSmall
         )
 
         Text(
-            text = userEmail ?: "Not logged in",
+            text = when {
+                isLoading -> "Please wait..."
+                userEmail != null -> userEmail
+                else -> "Not logged in"
+            },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

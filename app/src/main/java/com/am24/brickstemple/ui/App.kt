@@ -10,6 +10,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -66,6 +67,14 @@ fun App() {
             factory = AuthViewModel.AuthViewModelFactory(context)
         )
 
+        LaunchedEffect(AuthSession.isLoaded, AuthSession.token) {
+            if (AuthSession.isLoaded && AuthSession.isLoggedIn()) {
+                authViewModel.loadCurrentUser()
+            }
+        }
+
+        val uiAuth = authViewModel.uiState.collectAsState().value
+
         val productRepository = remember {
             ProductRepository(
                 ProductApiService(
@@ -81,8 +90,12 @@ fun App() {
             drawerState = drawerState,
             drawerContent = {
                 DrawerContent(
-                    userName = AuthSession.username ?: "Guest",
-                    userEmail = AuthSession.email ?: "",
+                    userName = when {
+                        uiAuth.isLoading -> "Loading..."
+                        uiAuth.username.isNotBlank() -> uiAuth.username
+                        else -> null
+                    },
+                    userEmail = uiAuth.email.takeIf { it.isNotBlank() },
                     onNavigate = { route ->
                         scope.launch { drawerState.close() }
                         navController.navigate(route)
