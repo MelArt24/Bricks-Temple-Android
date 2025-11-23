@@ -9,21 +9,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.am24.brickstemple.ui.navigation.Screen
 import com.am24.brickstemple.ui.viewmodels.AuthViewModel
+import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     navController: NavController,
-    viewModel: AuthViewModel
+    viewModel: AuthViewModel,
+    wishlistViewModel: WishlistViewModel
 ) {
     val state by viewModel.loginState.collectAsState()
 
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) {
+
+            wishlistViewModel.reset()
+
+            wishlistViewModel.refresh()
+
             viewModel.resetLoginSuccess()
             navController.navigate(Screen.ProductList.route) {
                 popUpTo("login") { inclusive = true }

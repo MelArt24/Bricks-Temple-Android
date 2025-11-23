@@ -21,9 +21,12 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.am24.brickstemple.auth.AuthSession
 import com.am24.brickstemple.auth.AuthStorage
+import com.am24.brickstemple.auth.LogoutManager
 import com.am24.brickstemple.data.remote.KtorClientProvider
 import com.am24.brickstemple.data.remote.ProductApiService
+import com.am24.brickstemple.data.remote.WishlistApiService
 import com.am24.brickstemple.data.repositories.ProductRepository
+import com.am24.brickstemple.data.repositories.WishlistRepository
 import com.am24.brickstemple.ui.navigation.AppNavGraph
 import com.am24.brickstemple.ui.components.BottomBar
 import com.am24.brickstemple.ui.components.DrawerContent
@@ -35,6 +38,7 @@ import com.am24.brickstemple.ui.navigation.shouldShowTopBar
 import com.am24.brickstemple.ui.theme.BricksTempleTheme
 import com.am24.brickstemple.ui.viewmodels.AuthViewModel
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
+import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,6 +87,19 @@ fun App() {
             )
         }
 
+
+
+        val wishlistRepository = remember {
+            WishlistRepository(
+                WishlistApiService(KtorClientProvider.client)
+            )
+        }
+
+        val wishlistViewModel: WishlistViewModel =
+            viewModel(factory = WishlistViewModel.Factory(wishlistRepository))
+
+
+
         val productViewModel: ProductViewModel =
             viewModel(factory = ProductViewModel.Factory(productRepository))
 
@@ -101,8 +118,12 @@ fun App() {
                         navController.navigate(route)
                     },
                     onLogout = {
-                        scope.launch { drawerState.close() }
-                        // TODO logout
+                        LogoutManager.performLogout(
+                            context = context,
+                            navController = navController,
+                            wishlistViewModel = wishlistViewModel,
+                            authViewModel = authViewModel
+                        )
                     },
                     onLogin = {
                         scope.launch { drawerState.close() }
@@ -133,7 +154,8 @@ fun App() {
                     navController = navController,
                     paddingValues = innerPadding,
                     productViewModel = productViewModel,
-                    authViewModel = authViewModel
+                    authViewModel = authViewModel,
+                    wishlistViewModel = wishlistViewModel
                 )
             }
         }

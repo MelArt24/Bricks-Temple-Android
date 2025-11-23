@@ -13,12 +13,15 @@ import com.am24.brickstemple.data.remote.dto.ProductDto
 import com.am24.brickstemple.ui.components.ProductItemCard
 import com.am24.brickstemple.ui.navigation.Screen
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
+import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
+import com.am24.brickstemple.utils.requireLogin
 
 @Composable
 fun ProductCategoryScreen(
     category: String?,
     navController: NavController,
     productViewModel: ProductViewModel,
+    wishlistViewModel: WishlistViewModel,
     paddingValues: PaddingValues
 ) {
     if (category == null) {
@@ -27,15 +30,18 @@ fun ProductCategoryScreen(
     }
 
     LaunchedEffect(category) {
-        when (category) {
-            "sets" -> productViewModel.loadType("set")
-            "minifigures" -> productViewModel.loadType("minifigure")
-            "details" -> productViewModel.loadType("detail")
-            "polybags" -> productViewModel.loadType("polybag")
-            "other" -> productViewModel.loadType("other")
-        }
+        productViewModel.loadType(
+            when (category) {
+                "sets" -> "set"
+                "minifigures" -> "minifigure"
+                "details" -> "detail"
+                "polybags" -> "polybag"
+                else -> "other"
+            }
+        )
     }
 
+    val wishlist = wishlistViewModel.wishlist.collectAsState().value
     val sections = productViewModel.sections.collectAsState().value
 
     val key = when (category) {
@@ -69,6 +75,8 @@ fun ProductCategoryScreen(
             CategoryContent(
                 products = state.products,
                 navController = navController,
+                wishlist = wishlist.keys.toList(),
+                wishlistViewModel = wishlistViewModel,
                 paddingValues = paddingValues
             )
         }
@@ -79,10 +87,10 @@ fun ProductCategoryScreen(
 fun CategoryContent(
     products: List<ProductDto>,
     navController: NavController,
+    wishlist: List<Int>,
+    wishlistViewModel: WishlistViewModel,
     paddingValues: PaddingValues
 ) {
-    val favoriteState = remember { mutableStateMapOf<Int, Boolean>() }
-    val cartState = remember { mutableStateMapOf<Int, Boolean>() }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -96,23 +104,24 @@ fun CategoryContent(
         items(products.size) { index ->
             val p = products[index]
 
-            val isFav = favoriteState[p.id] ?: false
-            val inCart = cartState[p.id] ?: false
+            val isFav = p.id in wishlist
 
             ProductItemCard(
                 name = p.name,
                 price = "${p.price}₴",
                 imageUrl = p.image ?: "",
                 isFavorite = isFav,
-                inCart = inCart,
+                inCart = false,
                 onClick = {
                     navController.navigate(Screen.ProductDetails.pass(p.id))
                 },
                 onAddToCartClick = {
-                    cartState[p.id] = !inCart
+                // TODO
                 },
                 onFavoriteClick = {
-                    favoriteState[p.id] = !isFav
+                    requireLogin(navController) {
+                        wishlistViewModel.toggle(p.id)
+                    }
                 }
             )
         }

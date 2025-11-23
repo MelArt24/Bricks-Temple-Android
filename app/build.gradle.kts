@@ -105,6 +105,10 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation:2.3.9")
     implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.9")
 
+    implementation("io.ktor:ktor-client-logging:2.3.6")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
+
     testImplementation("io.ktor:ktor-client-mock:2.3.9")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation(libs.junit)

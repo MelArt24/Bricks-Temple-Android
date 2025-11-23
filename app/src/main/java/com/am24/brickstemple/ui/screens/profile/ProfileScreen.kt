@@ -10,15 +10,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.am24.brickstemple.auth.AuthSession
-import com.am24.brickstemple.auth.AuthStorage
+import com.am24.brickstemple.auth.LogoutManager
 import com.am24.brickstemple.ui.navigation.Screen
 import com.am24.brickstemple.ui.viewmodels.AuthViewModel
+import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    viewModel: AuthViewModel
+    viewModel: AuthViewModel,
+    wishlistViewModel: WishlistViewModel,
 ) {
     val context = LocalContext.current
 
@@ -84,12 +86,12 @@ fun ProfileScreen(
 
             Button(
                 onClick = {
-                    AuthSession.clear()
-                    AuthStorage.clear(context)
-                    navController.navigate("login") {
-                        popUpTo("home") { inclusive = true }
-                        launchSingleTop = true
-                    }
+                    LogoutManager.performLogout(
+                        context = context,
+                        navController = navController,
+                        wishlistViewModel = wishlistViewModel,
+                        authViewModel = viewModel
+                    )
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {

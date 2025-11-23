@@ -178,6 +178,17 @@ class AuthViewModel(
         }
     }
 
+    fun logout() {
+        _uiState.value = AuthFormState(
+            username = "",
+            email = "",
+            isLoggedIn = false,
+            isLoading = false,
+            errorMessage = null
+        )
+    }
+
+
 
     class AuthViewModelFactory(
         private val context: Context

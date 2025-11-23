@@ -2,8 +2,6 @@ package com.am24.brickstemple.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -22,13 +20,15 @@ import com.am24.brickstemple.ui.screens.settings.SettingsScreen
 import com.am24.brickstemple.ui.screens.splash.SplashScreen
 import com.am24.brickstemple.ui.viewmodels.AuthViewModel
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
+import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
 
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
     paddingValues: PaddingValues,
     productViewModel: ProductViewModel,
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
+    wishlistViewModel: WishlistViewModel
 ) {
     NavHost(
         navController = navController,
@@ -38,22 +38,49 @@ fun AppNavGraph(
             ProductListScreen(
                 navController = navController,
                 paddingValues = paddingValues,
-                productViewModel = productViewModel
+                productViewModel = productViewModel,
+                wishlistViewModel = wishlistViewModel
             )
         }
+
         composable(Screen.Cart.route) { CartScreen(navController) }
-        composable(Screen.Wishlist.route) { WishlistScreen(navController) }
-        composable(Screen.Profile.route) { ProfileScreen(navController, authViewModel) }
+
+        composable(Screen.Wishlist.route) {
+            WishlistScreen(
+                navController = navController,
+                wishlistViewModel = wishlistViewModel,
+                productViewModel = productViewModel,
+                paddingValues = paddingValues
+            )
+        }
+
+        composable(Screen.Profile.route) {
+            ProfileScreen(
+                navController = navController,
+                viewModel = authViewModel,
+                wishlistViewModel = wishlistViewModel,
+            )
+        }
+
         composable(Screen.OrderHistory.route) { OrderHistoryScreen() }
         composable(Screen.Settings.route) { SettingsScreen() }
         composable(Screen.About.route) { AboutScreen() }
-        composable(Screen.Login.route) { LoginScreen(navController, authViewModel) }
+
+        composable(Screen.Login.route) {
+            LoginScreen(
+                navController = navController,
+                viewModel = authViewModel,
+                wishlistViewModel = wishlistViewModel
+            )
+        }
 
         composable(Screen.ProductDetails.route) { backStack ->
             val id = backStack.arguments?.getString("id")?.toInt()
             ProductDetailsScreen(
                 id = id,
-                paddingValues = paddingValues
+                navController = navController,
+                paddingValues = paddingValues,
+                wishlistViewModel = wishlistViewModel
             )
         }
 
@@ -63,7 +90,8 @@ fun AppNavGraph(
                 category,
                 navController = navController,
                 productViewModel = productViewModel,
-                paddingValues = paddingValues
+                paddingValues = paddingValues,
+                wishlistViewModel = wishlistViewModel
             )
         }
 

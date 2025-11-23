@@ -16,16 +16,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.am24.brickstemple.data.repositories.ProductRepository
 import com.am24.brickstemple.ui.viewmodels.ProductDetailsViewModel
 import com.am24.brickstemple.data.remote.ProductApiService
 import com.am24.brickstemple.data.remote.KtorClientProvider
+import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
+import com.am24.brickstemple.utils.requireLogin
 
 @Composable
 fun ProductDetailsScreen(
     id: Int?,
-    paddingValues: PaddingValues
+    navController: NavController,
+    paddingValues: PaddingValues,
+    wishlistViewModel: WishlistViewModel
 ) {
     if (id == null) {
         Text("Invalid product ID", modifier = Modifier.padding(paddingValues))
@@ -38,8 +43,9 @@ fun ProductDetailsScreen(
         viewModel(factory = ProductDetailsViewModel.Factory(id, repo))
 
     val state = viewModel.uiState.collectAsState().value
+    val wishlist = wishlistViewModel.wishlist.collectAsState().value
+    val isFavorite = id in wishlist
 
-    var isFavorite by remember { mutableStateOf(false) }
     var inCart by remember { mutableStateOf(false) }
 
     Box(
@@ -187,7 +193,11 @@ fun ProductDetailsScreen(
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         IconButton(
-                            onClick = { isFavorite = !isFavorite },
+                            onClick = {
+                                requireLogin(navController) {
+                                    wishlistViewModel.toggle(p.id)
+                                }
+                            },
                             modifier = Modifier
                                 .size(56.dp)
                                 .weight(1f)
