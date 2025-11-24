@@ -91,6 +91,7 @@ fun CategoryContent(
     wishlistViewModel: WishlistViewModel,
     paddingValues: PaddingValues
 ) {
+    val updating = wishlistViewModel.isUpdating.collectAsState().value
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -103,8 +104,8 @@ fun CategoryContent(
     ) {
         items(products.size) { index ->
             val p = products[index]
-
             val isFav = p.id in wishlist
+            val isLoading = updating.contains(p.id)
 
             ProductItemCard(
                 name = p.name,
@@ -122,7 +123,8 @@ fun CategoryContent(
                     requireLogin(navController) {
                         wishlistViewModel.toggle(p.id)
                     }
-                }
+                },
+                favoriteDisabled = isLoading
             )
         }
     }

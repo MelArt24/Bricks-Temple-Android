@@ -22,6 +22,7 @@ import com.am24.brickstemple.data.repositories.ProductRepository
 import com.am24.brickstemple.ui.viewmodels.ProductDetailsViewModel
 import com.am24.brickstemple.data.remote.ProductApiService
 import com.am24.brickstemple.data.remote.KtorClientProvider
+import com.am24.brickstemple.ui.components.FavoriteButton
 import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
 import com.am24.brickstemple.utils.requireLogin
 
@@ -44,7 +45,11 @@ fun ProductDetailsScreen(
 
     val state = viewModel.uiState.collectAsState().value
     val wishlist = wishlistViewModel.wishlist.collectAsState().value
+
+    val updating = wishlistViewModel.isUpdating.collectAsState().value
+
     val isFavorite = id in wishlist
+    val isLoading = updating.contains(id)
 
     var inCart by remember { mutableStateOf(false) }
 
@@ -192,7 +197,9 @@ fun ProductDetailsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        IconButton(
+                        FavoriteButton(
+                            isFavorite = isFavorite,
+                            isLoading = isLoading,
                             onClick = {
                                 requireLogin(navController) {
                                     wishlistViewModel.toggle(p.id)
@@ -201,14 +208,7 @@ fun ProductDetailsScreen(
                             modifier = Modifier
                                 .size(56.dp)
                                 .weight(1f)
-                        ) {
-                            Icon(
-                                imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = "Wishlist",
-                                tint = if (isFavorite) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        )
 
                         Button(
                             onClick = { inCart = !inCart },

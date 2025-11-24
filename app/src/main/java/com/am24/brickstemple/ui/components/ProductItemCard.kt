@@ -85,35 +85,12 @@ fun ProductItemCard(
                 )
             }
 
-            if (favoriteDisabled) {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            } else {
-                IconButton(
-                    onClick = onFavoriteClick,
-                    modifier = Modifier.size(24.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isFavorite)
-                            Icons.Filled.Favorite
-                        else
-                            Icons.Filled.FavoriteBorder,
-                        contentDescription = "Favorite",
-                        tint = if (isFavorite)
-                            MaterialTheme.colorScheme.error
-                        else
-                            MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
+            FavoriteButton(
+                isFavorite = isFavorite,
+                isLoading = favoriteDisabled,
+                onClick = onFavoriteClick,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }

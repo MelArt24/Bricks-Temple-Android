@@ -26,6 +26,8 @@ fun ProductListScreen(
     val sections = productViewModel.sections.collectAsState().value
     val wishlist = wishlistViewModel.wishlist.collectAsState().value
 
+    val updating = wishlistViewModel.isUpdating.collectAsState().value
+
     val setsState = sections["set"]
     val minifigsState = sections["minifigure"]
     val detailsState = sections["detail"]
@@ -47,7 +49,8 @@ fun ProductListScreen(
             price = "${dto.price}₴",
             image = dto.image ?: "",
             isFavorite = isFavorite,
-            inCart = false
+            inCart = false,
+            isLoading = updating.contains(id)
         )
     }
 
