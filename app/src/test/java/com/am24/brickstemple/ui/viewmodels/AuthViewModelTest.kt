@@ -1,5 +1,6 @@
 package com.am24.brickstemple.ui.viewmodels
 
+import com.am24.brickstemple.data.remote.auth.UserMeResponse
 import com.am24.brickstemple.domain.repositories.AuthRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -25,7 +26,12 @@ class FakeAuthRepository : AuthRepository {
     override suspend fun logout() {}
 
     override suspend fun getCurrentUser() =
-        throw NotImplementedError()
+        UserMeResponse(
+            id = 1,
+            username = "TestUser",
+            email = "a@mail.com",
+            message = null
+        )
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

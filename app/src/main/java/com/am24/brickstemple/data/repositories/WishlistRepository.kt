@@ -5,7 +5,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class WishlistRepository(
+open class WishlistRepository(
     private val api: WishlistApiService,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
@@ -20,7 +20,7 @@ class WishlistRepository(
 
     private val pendingJobs = mutableMapOf<Int, Job>()
 
-    suspend fun refresh() = withContext(dispatcher) {
+    open suspend fun refresh() = withContext(dispatcher) {
         val response = api.getWishlist()
         _wishlist.value = response?.items?.associate { it.productId to it.id!! } ?: emptyMap()
     }
