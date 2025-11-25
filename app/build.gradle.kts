@@ -111,6 +111,8 @@ dependencies {
 
     implementation("androidx.compose.material:material:1.6.0")
 
+    implementation("androidx.compose.material:material-icons-extended:1.6.0")
+
     testImplementation("io.ktor:ktor-client-mock:2.3.9")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation(libs.junit)

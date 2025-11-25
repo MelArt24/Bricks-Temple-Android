@@ -38,6 +38,10 @@ open class WishlistApiService(
         client.delete("$BASE_URL/remove/$itemId")
     }
 
+    open suspend fun removeOneItem(itemId: Int) {
+        client.delete("$BASE_URL/removeOneItem/$itemId")
+    }
+
     open suspend fun clearWishlist() {
         client.delete("$BASE_URL/clear")
     }

@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.am24.brickstemple.data.repositories.WishlistRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class WishlistViewModel(
@@ -11,15 +13,19 @@ class WishlistViewModel(
 ) : ViewModel() {
 
     val wishlist = repo.wishlist
+    val items = repo.items
     val isUpdating = repo.isUpdating
 
-    fun refresh() {
+    private val _updatingQuantity = MutableStateFlow<Int?>(null)
+    val updatingQuantity = _updatingQuantity.asStateFlow()
+
+    init {
         viewModelScope.launch {
             repo.refresh()
         }
     }
 
-    init {
+    fun refresh() {
         viewModelScope.launch {
             repo.refresh()
         }
@@ -28,6 +34,32 @@ class WishlistViewModel(
     fun toggle(productId: Int) {
         viewModelScope.launch {
             repo.toggle(productId)
+        }
+    }
+
+
+    fun updateQuantity(productId: Int, delta: Int) {
+        viewModelScope.launch {
+            val item = repo.lastFetchedItem(productId) ?: return@launch
+            val newQty = item.quantity + delta
+
+            _updatingQuantity.value = productId
+
+            try {
+                when {
+                    newQty <= 0 -> repo.removeCompletely(productId)
+                    delta == -1 -> repo.removeOne(productId)
+                    else -> repo.updateQuantity(item.id!!, newQty)
+                }
+            } finally {
+                _updatingQuantity.value = null
+            }
+        }
+    }
+
+    fun removeCompletely(productId: Int) {
+        viewModelScope.launch {
+            repo.removeCompletely(productId)
         }
     }
 
