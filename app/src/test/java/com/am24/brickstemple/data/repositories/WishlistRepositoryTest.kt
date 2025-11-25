@@ -21,8 +21,8 @@ class WishlistRepositoryTest {
     fun setup() {
         api = FakeWishlistApiService().apply {
             serverItems = mutableListOf(
-                10 to 1,
-                20 to 2,
+                Triple(10, 1, 1),
+                Triple(20, 2, 1),
             )
         }
 
@@ -115,4 +115,125 @@ class WishlistRepositoryTest {
 
         assertEquals(emptyMap<Int, Int>(), repo.wishlist.value)
     }
+
+
+
+    @Test
+    fun `removeCompletely should remove item from API and refresh`() = runTest(dispatcher) {
+        repo.refresh()
+        advanceUntilIdle()
+
+        repo.removeCompletely(10)
+        advanceUntilIdle()
+
+        assertTrue(api.removed.contains(1))
+
+        assertEquals(
+            mapOf(20 to 2),
+            repo.wishlist.value
+        )
+    }
+
+    @Test
+    fun `removeCompletely should do nothing if product not found`() = runTest(dispatcher) {
+        repo.refresh()
+        advanceUntilIdle()
+
+        repo.removeCompletely(999)
+        advanceUntilIdle()
+
+        assertTrue(api.removed.isEmpty())
+
+        assertEquals(
+            mapOf(10 to 1, 20 to 2),
+            repo.wishlist.value
+        )
+    }
+
+    @Test
+    fun `removeOne should call removeOneItem and refresh`() = runTest(dispatcher) {
+        repo.refresh()
+        advanceUntilIdle()
+
+        repo.removeOne(20)
+        advanceUntilIdle()
+
+        assertTrue(api.removedOne.contains(2))
+
+        assertEquals(
+            mapOf(10 to 1),
+            repo.wishlist.value
+        )
+    }
+
+
+    @Test
+    fun `removeOne should ignore call when product not in wishlist`() = runTest(dispatcher) {
+        repo.refresh()
+        advanceUntilIdle()
+
+        repo.removeOne(777)
+        advanceUntilIdle()
+
+        assertTrue(api.removed.isEmpty())
+        assertEquals(
+            mapOf(10 to 1, 20 to 2),
+            repo.wishlist.value
+        )
+    }
+
+    @Test
+    fun `lastFetchedItem should return correct WishlistItemDto`() = runTest(dispatcher) {
+        repo.refresh()
+        advanceUntilIdle()
+
+        val item = repo.lastFetchedItem(10)
+
+        assertEquals(10, item?.productId)
+        assertEquals(1, item?.id)
+    }
+
+    @Test
+    fun `lastFetchedItem should return null when product not found`() = runTest(dispatcher) {
+        repo.refresh()
+        advanceUntilIdle()
+
+        val item = repo.lastFetchedItem(999)
+
+        assertEquals(null, item)
+    }
+
+
+    @Test
+    fun `updateQuantity should call API and refresh`() = runTest(dispatcher) {
+        repo.refresh()
+        advanceUntilIdle()
+
+        repo.updateQuantity(1, 5)
+        advanceUntilIdle()
+
+        assertTrue(api.updated.contains(1 to 5))
+
+        val item = repo.lastFetchedItem(10)
+        assertEquals(5, item?.quantity)
+    }
+
+
+    @Test
+    fun `removeOne does nothing for unknown product`() = runTest(dispatcher) {
+        repo.refresh()
+        advanceUntilIdle()
+
+        repo.removeOne(999)
+        advanceUntilIdle()
+
+        assertTrue(api.removedOne.isEmpty())
+        assertEquals(
+            mapOf(10 to 1, 20 to 2),
+            repo.wishlist.value
+        )
+    }
+
+
+
 }

@@ -13,10 +13,12 @@ class FakeWishlistApiService : WishlistApiService(
     client = HttpClient()
 ) {
 
-    var serverItems: MutableList<Pair<Int, Int>> = mutableListOf()
+    var serverItems: MutableList<Triple<Int, Int, Int>> = mutableListOf()
 
     val added = mutableListOf<Int>()
     val removed = mutableListOf<Int>()
+    val removedOne = mutableListOf<Int>()
+    val updated = mutableListOf<Pair<Int, Int>>()
 
     override suspend fun getWishlist(): WishlistResponse {
         return WishlistResponse(
@@ -25,12 +27,12 @@ class FakeWishlistApiService : WishlistApiService(
                 userId = 1,
                 createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
             ),
-            items = serverItems.map { (productId, itemId) ->
+            items = serverItems.map { (productId, itemId, quantity) ->
                 WishlistItemDto(
                     id = itemId,
                     wishlistId = 1,
                     productId = productId,
-                    quantity = 1,
+                    quantity = quantity,
                     addedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 )
             }
@@ -39,8 +41,8 @@ class FakeWishlistApiService : WishlistApiService(
 
     override suspend fun addItem(productId: Int) {
         added += productId
-        val newId = (serverItems.maxOfOrNull { it.second } ?: 0) + 1
-        serverItems += (productId to newId)
+        val newItemId = (serverItems.maxOfOrNull { it.second } ?: 0) + 1
+        serverItems += Triple(productId, newItemId, 1)
     }
 
     override suspend fun removeItem(itemId: Int) {
@@ -48,13 +50,34 @@ class FakeWishlistApiService : WishlistApiService(
         serverItems.removeIf { it.second == itemId }
     }
 
+    override suspend fun removeOneItem(itemId: Int) {
+        removedOne += itemId
+        val index = serverItems.indexOfFirst { it.second == itemId }
+        if (index != -1) {
+            val triple = serverItems[index]
+            val newQty = triple.third - 1
+            if (newQty <= 0) {
+                serverItems.removeAt(index)
+            } else {
+                serverItems[index] = triple.copy(third = newQty)
+            }
+        }
+    }
+
     override suspend fun clearWishlist() {
         serverItems.clear()
     }
 
     override suspend fun updateQuantity(itemId: Int, quantity: Int) {
+        updated += (itemId to quantity)
 
+        val index = serverItems.indexOfFirst { it.second == itemId }
+        if (index != -1) {
+            val triple = serverItems[index]
+            serverItems[index] = triple.copy(third = quantity)
+        }
     }
+
 
     override suspend fun checkout() =
         WishlistApiService.CreatedResponse("ok", 1)
