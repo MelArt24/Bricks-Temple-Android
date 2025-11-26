@@ -2,50 +2,117 @@ package com.am24.brickstemple.data.remote
 
 import com.am24.brickstemple.auth.AuthSession
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.DefaultRequest
-import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.plugins.logging.LogLevel
-import io.ktor.client.plugins.logging.Logger
-import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.header
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.datetime.serializers.LocalDateTimeIso8601Serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.contextual
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import okhttp3.Protocol
+import okhttp3.Request
+import okhttp3.ResponseBody.Companion.toResponseBody
+import okhttp3.logging.HttpLoggingInterceptor
+import java.io.IOException
+import java.net.UnknownHostException
+import java.util.concurrent.TimeUnit
+
+private const val BASE_URL = "https://bricks-temple-server.onrender.com"
+private const val HEALTH_URL = "$BASE_URL/health"
+
+enum class NetworkStatus {
+    CONNECTED,
+    CONNECTING,
+    OFFLINE
+}
 
 object KtorClientProvider {
 
+    private val _networkStatus = MutableStateFlow(NetworkStatus.CONNECTED)
+    val networkStatus: StateFlow<NetworkStatus> = _networkStatus.asStateFlow()
+
+    private val monitorScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    @Volatile
+    private var isPinging = false
+
+    private fun makeOkHttp(): OkHttpClient {
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+
+        return OkHttpClient.Builder()
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .readTimeout(20, TimeUnit.SECONDS)
+            .writeTimeout(20, TimeUnit.SECONDS)
+            .addInterceptor(logging)
+            .addInterceptor(offlineInterceptor)
+            .build()
+    }
+
+    private val offlineInterceptor = Interceptor { chain ->
+        try {
+            val response = chain.proceed(chain.request())
+
+            if (_networkStatus.value != NetworkStatus.CONNECTED) {
+                _networkStatus.value = NetworkStatus.CONNECTED
+            }
+
+            response
+
+        } catch (e: UnknownHostException) {
+            handleNetworkError(chain, e)
+        } catch (e: IOException) {
+            handleNetworkError(chain, e)
+        }
+    }
+
+    private fun handleNetworkError(
+        chain: Interceptor.Chain,
+        @Suppress("UNUSED_PARAMETER") e: Exception
+    ): okhttp3.Response {
+        if (_networkStatus.value != NetworkStatus.OFFLINE) {
+            _networkStatus.value = NetworkStatus.OFFLINE
+            startPingLoop()
+        }
+        return makeOfflineResponse(chain)
+    }
+
+    private fun makeOfflineResponse(chain: Interceptor.Chain): okhttp3.Response =
+        okhttp3.Response.Builder()
+            .request(chain.request())
+            .protocol(Protocol.HTTP_1_1)
+            .code(499) // our custom "offline"
+            .message("Offline")
+            .body("".toResponseBody(null))
+            .build()
+
     val client: HttpClient by lazy {
-        HttpClient(CIO) {
-
-            install(Logging) {
-                logger = object : Logger {
-                    override fun log(message: String) {
-                        android.util.Log.d("KtorLogger", message)
-                    }
-                }
-                level = LogLevel.ALL
+        HttpClient(OkHttp) {
+            engine {
+                preconfigured = makeOkHttp()
             }
-
-            install(HttpTimeout) {
-                requestTimeoutMillis = 25000
-                connectTimeoutMillis = 25000
-                socketTimeoutMillis = 25000
-            }
-
 
             install(ContentNegotiation) {
                 json(
                     Json {
                         ignoreUnknownKeys = true
-                        prettyPrint = false
                         isLenient = true
-
+                        prettyPrint = false
                         serializersModule = SerializersModule {
                             contextual(LocalDateTimeIso8601Serializer)
                         }
@@ -58,13 +125,45 @@ object KtorClientProvider {
                 if (!token.isNullOrBlank()) {
                     header(HttpHeaders.Authorization, "Bearer $token")
                 }
-
                 header(HttpHeaders.ContentType, ContentType.Application.Json)
             }
+        }
+    }
 
-            engine {
-                requestTimeout = 30_000
+    private fun startPingLoop() {
+        if (isPinging) return
+        isPinging = true
+
+        monitorScope.launch {
+            _networkStatus.value = NetworkStatus.CONNECTING
+
+            val rawClient = OkHttpClient.Builder()
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(5, TimeUnit.SECONDS)
+                .build()
+
+            repeat(10) {
+                try {
+                    val request = Request.Builder()
+                        .url(HEALTH_URL)
+                        .build()
+
+                    rawClient.newCall(request).execute().use { response ->
+                        if (response.isSuccessful) {
+                            _networkStatus.value = NetworkStatus.CONNECTED
+                            isPinging = false
+                            return@launch
+                        }
+                    }
+                } catch (_: Exception) {
+
+                }
+
+                delay(3000)
             }
+
+            _networkStatus.value = NetworkStatus.OFFLINE
+            isPinging = false
         }
     }
 }

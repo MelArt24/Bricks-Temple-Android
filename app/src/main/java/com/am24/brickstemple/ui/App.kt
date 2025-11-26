@@ -14,6 +14,7 @@ import com.am24.brickstemple.auth.AuthSession
 import com.am24.brickstemple.auth.AuthStorage
 import com.am24.brickstemple.auth.LogoutManager
 import com.am24.brickstemple.data.remote.KtorClientProvider
+import com.am24.brickstemple.data.remote.NetworkStatus
 import com.am24.brickstemple.data.remote.ProductApiService
 import com.am24.brickstemple.data.remote.WishlistApiService
 import com.am24.brickstemple.data.repositories.ProductRepository
@@ -30,6 +31,7 @@ import com.am24.brickstemple.ui.theme.BricksTempleTheme
 import com.am24.brickstemple.ui.viewmodels.AuthViewModel
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
 import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,6 +83,27 @@ fun App() {
 
         val productViewModel: ProductViewModel =
             viewModel(factory = ProductViewModel.Factory(productRepository))
+
+        val networkState by KtorClientProvider.networkStatus.collectAsState()
+
+        LaunchedEffect(networkState) {
+            if (networkState == NetworkStatus.CONNECTED) {
+
+                delay(300)
+
+                try { wishlistViewModel.refresh() } catch (_: Exception) {}
+
+                try { productViewModel.loadType("set") } catch (_: Exception) {}
+                try { productViewModel.loadType("minifigure") } catch (_: Exception) {}
+                try { productViewModel.loadType("detail") } catch (_: Exception) {}
+                try { productViewModel.loadType("polybag") } catch (_: Exception) {}
+                try { productViewModel.loadType("other") } catch (_: Exception) {}
+
+                if (AuthSession.isLoggedIn()) {
+                    try { authViewModel.loadCurrentUser() } catch (_: Exception) {}
+                }
+            }
+        }
 
         ModalNavigationDrawer(
             drawerState = drawerState,

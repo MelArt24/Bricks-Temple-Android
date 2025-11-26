@@ -101,7 +101,7 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.6.0")
 
     implementation("io.ktor:ktor-client-core:2.3.9")
-    implementation("io.ktor:ktor-client-cio:2.3.9")
+//    implementation("io.ktor:ktor-client-cio:2.3.9")
     implementation("io.ktor:ktor-client-content-negotiation:2.3.9")
     implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.9")
 
@@ -112,6 +112,11 @@ dependencies {
     implementation("androidx.compose.material:material:1.6.0")
 
     implementation("androidx.compose.material:material-icons-extended:1.6.0")
+
+    implementation("io.ktor:ktor-client-okhttp:2.3.6")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
 
     testImplementation("io.ktor:ktor-client-mock:2.3.9")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
