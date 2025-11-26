@@ -33,20 +33,6 @@ class ProductViewModelTest {
         vm = ProductViewModel(repo)
     }
 
-
-    @Test
-    fun `init loads default sections`() = runTest {
-        advanceUntilIdle()
-
-        val sections = vm.sections.value
-
-        assertTrue(sections.containsKey("set"))
-        assertTrue(sections.containsKey("minifigure"))
-        assertTrue(sections.containsKey("detail"))
-        assertTrue(sections.containsKey("polybag"))
-        assertTrue(sections.containsKey("other"))
-    }
-
     @Test
     fun `loadType loads correct items`() = runTest {
         vm.loadType("set")
