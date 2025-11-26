@@ -35,6 +35,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Remove
+import com.am24.brickstemple.ui.components.WishlistBottomBar
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -54,6 +55,8 @@ fun WishlistScreen(
 
     val itemDtos = wishlistViewModel.items.collectAsState().value
     val itemMap = itemDtos.associateBy { it.productId }
+
+    val isClearing = wishlistViewModel.isClearing.collectAsState().value
 
     var refreshing by remember { mutableStateOf(false) }
 
@@ -87,44 +90,47 @@ fun WishlistScreen(
                 }
             )
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(items, key = { it.id }) { p ->
-                    val dto = itemMap[p.id]
-                    val quantity = dto?.quantity ?: 1
+            Column(modifier = Modifier.fillMaxSize()) {
 
-                    val spinQty = (updatingQuantity == p.id)
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(items, key = { it.id }) { p ->
+                        val dto = itemMap[p.id]
+                        val quantity = dto?.quantity ?: 1
+                        val spinQty = (updatingQuantity == p.id)
+                        val isUpdatingItem = p.id in updating
 
-                    val isUpdating = p.id in updating
-
-                    WishlistItemRow(
-                        name = p.name,
-                        priceText = "${p.price}₴",
-                        imageUrl = p.image ?: "",
-                        quantity = quantity,
-                        spinQuantity = spinQty,
-                        isUpdating = isUpdating,
-                        onClick = {
-                            navController.navigate(Screen.ProductDetails.pass(p.id))
-                        },
-                        onIncrease = {
-                            if (!isUpdating) wishlistViewModel.updateQuantity(p.id, +1)
-                        },
-                        onDecrease = {
-                            if (!isUpdating && !spinQty && quantity > 0)
-                                wishlistViewModel.updateQuantity(p.id, -1)
-                        },
-                        onRemove = {
-                            wishlistViewModel.toggle(p.id)
-                        },
-                        onAddToCart = {
-                            // TODO
-                        }
-                    )
+                        WishlistItemRow(
+                            name = p.name,
+                            priceText = "${p.price}₴",
+                            imageUrl = p.image ?: "",
+                            quantity = quantity,
+                            spinQuantity = spinQty,
+                            isUpdating = isUpdatingItem,
+                            onClick = { navController.navigate(Screen.ProductDetails.pass(p.id)) },
+                            onIncrease = {
+                                if (!isUpdatingItem) wishlistViewModel.updateQuantity(p.id, +1)
+                            },
+                            onDecrease = {
+                                if (!isUpdatingItem && !spinQty && quantity > 0)
+                                    wishlistViewModel.updateQuantity(p.id, -1)
+                            },
+                            onRemove = { wishlistViewModel.toggle(p.id) },
+                            onAddToCart = { /* TODO */ }
+                        )
+                    }
                 }
+
+                WishlistBottomBar(
+                    onClear = { wishlistViewModel.clearWishlist() },
+                    onCheckout = { /* TODO: checkout flow */ },
+                    enabled = updating.isEmpty() && !refreshing
+                )
             }
         }
 
@@ -144,6 +150,18 @@ fun WishlistScreen(
                 CircularProgressIndicator()
             }
         }
+
+        if (isClearing) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+
     }
 }
 

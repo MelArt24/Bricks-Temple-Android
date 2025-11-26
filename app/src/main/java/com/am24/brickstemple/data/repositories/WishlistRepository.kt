@@ -22,6 +22,9 @@ open class WishlistRepository(
     private val _isUpdating = MutableStateFlow<Set<Int>>(emptySet())
     val isUpdating = _isUpdating.asStateFlow()
 
+    private val _isClearing = MutableStateFlow(false)
+    val isClearing = _isClearing.asStateFlow()
+
     private val pendingJobs = mutableMapOf<Int, Job>()
 
     open suspend fun refresh() = withContext(dispatcher) {
@@ -69,9 +72,10 @@ open class WishlistRepository(
 
             if (productId in current.keys) {
                 val itemId = current[productId]!!
-                api.removeItem(itemId)
                 _wishlist.value = current - productId
+                api.removeItem(itemId)
             } else {
+                _wishlist.value = current + (productId to -1)
                 api.addItem(productId)
             }
 
@@ -91,4 +95,17 @@ open class WishlistRepository(
     fun clearLocal() {
         _wishlist.value = emptyMap()
     }
+
+    suspend fun clearWishlist() = withContext(dispatcher) {
+        _isClearing.value = true
+
+        try {
+            try { api.clearWishlist() } catch (_: Exception) {}
+            _wishlist.value = emptyMap()
+            _items.value = emptyList()
+        } finally {
+            _isClearing.value = false
+        }
+    }
+
 }
