@@ -124,6 +124,7 @@ fun NetworkBanner() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(color)
+                    .windowInsetsPadding(WindowInsets.statusBars)
                     .padding(vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {

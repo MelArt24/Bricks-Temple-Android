@@ -25,6 +25,7 @@ fun DrawerContent(
             .width(260.dp)
             .background(MaterialTheme.colorScheme.surface)
             .padding(16.dp)
+            .windowInsetsPadding(WindowInsets.safeDrawing)
     ) {
 
         Text(
