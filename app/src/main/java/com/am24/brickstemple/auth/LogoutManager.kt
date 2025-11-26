@@ -15,16 +15,14 @@ object LogoutManager {
         authViewModel: AuthViewModel
     ) {
 
-        AuthSession.clear()
+        authViewModel.logout()
 
         AuthStorage.clear(context)
 
         wishlistViewModel.reset()
 
-        authViewModel.logout()
-
         navController.navigate(Screen.Login.route) {
-            popUpTo(Screen.ProductList.route) { inclusive = true }
+            popUpTo(0) { inclusive = true }
             launchSingleTop = true
         }
     }

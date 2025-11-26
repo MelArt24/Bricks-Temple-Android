@@ -6,18 +6,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.am24.brickstemple.auth.AuthSession
 import com.am24.brickstemple.ui.navigation.Screen
 
 @Composable
 fun DrawerContent(
-    userName: String?,
-    userEmail: String?,
+    isLoggedIn: Boolean,
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit,
     onLogin: () -> Unit
 ) {
-    val isLoading = userName == "Loading..."
-    val isLoggedIn = userName != null && !isLoading
+    val username = AuthSession.username
+    val email = AuthSession.email
 
     Column(
         modifier = Modifier
@@ -29,8 +29,7 @@ fun DrawerContent(
 
         Text(
             text = when {
-                isLoading -> "Loading..."
-                userName != null -> userName
+                isLoggedIn -> username ?: "User"
                 else -> "Guest User"
             },
             style = MaterialTheme.typography.headlineSmall
@@ -38,8 +37,7 @@ fun DrawerContent(
 
         Text(
             text = when {
-                isLoading -> "Please wait..."
-                userEmail != null -> userEmail
+                isLoggedIn -> email ?: ""
                 else -> "Not logged in"
             },
             style = MaterialTheme.typography.bodyMedium,

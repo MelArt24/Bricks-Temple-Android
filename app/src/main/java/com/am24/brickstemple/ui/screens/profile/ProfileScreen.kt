@@ -2,8 +2,7 @@ package com.am24.brickstemple.ui.screens.profile
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -25,16 +24,17 @@ fun ProfileScreen(
     val context = LocalContext.current
 
     LaunchedEffect(Unit) {
-        if (!AuthSession.isLoggedIn()) {
+        if (AuthSession.token.isNullOrBlank()) {
             navController.navigate(Screen.Login.route) {
                 popUpTo(Screen.Profile.route) { inclusive = true }
             }
             return@LaunchedEffect
         }
 
-        viewModel.loadCurrentUser()
+        if (AuthSession.username == null || AuthSession.email == null) {
+            viewModel.loadCurrentUser()
+        }
     }
-
 
     val email = AuthSession.email ?: "Unknown"
     val username = AuthSession.username ?: "User"
@@ -62,25 +62,13 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            Text(
-                text = "Email:",
-                style = MaterialTheme.typography.labelLarge
-            )
-            Text(
-                text = email,
-                style = MaterialTheme.typography.bodyLarge
-            )
+            Text("Email:", style = MaterialTheme.typography.labelLarge)
+            Text(email, style = MaterialTheme.typography.bodyLarge)
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                text = "Username:",
-                style = MaterialTheme.typography.labelLarge
-            )
-            Text(
-                text = username,
-                style = MaterialTheme.typography.bodyLarge
-            )
+            Text("Username:", style = MaterialTheme.typography.labelLarge)
+            Text(username, style = MaterialTheme.typography.bodyLarge)
 
             Spacer(modifier = Modifier.height(32.dp))
 

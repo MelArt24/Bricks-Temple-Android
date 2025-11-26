@@ -2,17 +2,8 @@ package com.am24.brickstemple.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.rememberDrawerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -71,34 +62,22 @@ fun App() {
             factory = AuthViewModel.AuthViewModelFactory(context)
         )
 
-        LaunchedEffect(AuthSession.isLoaded, AuthSession.token) {
-            if (AuthSession.isLoaded && AuthSession.isLoggedIn()) {
-                authViewModel.loadCurrentUser()
+        LaunchedEffect(AuthSession.token) {
+            if (AuthSession.token.isNullOrBlank()) {
+                authViewModel.logout()
             }
         }
 
-        val uiAuth = authViewModel.uiState.collectAsState().value
-
         val productRepository = remember {
-            ProductRepository(
-                ProductApiService(
-                    KtorClientProvider.client
-                )
-            )
+            ProductRepository(ProductApiService(KtorClientProvider.client))
         }
 
-
-
         val wishlistRepository = remember {
-            WishlistRepository(
-                WishlistApiService(KtorClientProvider.client)
-            )
+            WishlistRepository(WishlistApiService(KtorClientProvider.client))
         }
 
         val wishlistViewModel: WishlistViewModel =
             viewModel(factory = WishlistViewModel.Factory(wishlistRepository))
-
-
 
         val productViewModel: ProductViewModel =
             viewModel(factory = ProductViewModel.Factory(productRepository))
@@ -107,12 +86,7 @@ fun App() {
             drawerState = drawerState,
             drawerContent = {
                 DrawerContent(
-                    userName = when {
-                        uiAuth.isLoading -> "Loading..."
-                        uiAuth.username.isNotBlank() -> uiAuth.username
-                        else -> null
-                    },
-                    userEmail = uiAuth.email.takeIf { it.isNotBlank() },
+                    isLoggedIn = AuthSession.isLoggedIn(),
                     onNavigate = { route ->
                         scope.launch { drawerState.close() }
                         navController.navigate(route)

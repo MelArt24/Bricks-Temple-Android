@@ -36,7 +36,7 @@ class AuthViewModel(
     val registerState: StateFlow<AuthFormState> = _registerState
 
     private val _uiState = MutableStateFlow(AuthFormState())
-    val uiState: StateFlow<AuthFormState> = _uiState.asStateFlow()
+//    val uiState: StateFlow<AuthFormState> = _uiState.asStateFlow()
 
     fun onLoginEmailChange(value: String) {
         _loginState.update { it.copy(email = value, errorMessage = null) }
@@ -72,6 +72,7 @@ class AuthViewModel(
             }
         }
     }
+
 
     fun onRegisterUsernameChange(v: String) {
         _registerState.update { it.copy(username = v, errorMessage = null) }
@@ -172,13 +173,20 @@ class AuthViewModel(
                     )
                 }
 
-            } catch (_: Exception) {
-                _uiState.update { it.copy(isLoading = false, isLoggedIn = false) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = e.message
+                    )
+                }
             }
         }
     }
 
     fun logout() {
+        AuthSession.clear()
+
         _uiState.value = AuthFormState(
             username = "",
             email = "",
@@ -186,6 +194,9 @@ class AuthViewModel(
             isLoading = false,
             errorMessage = null
         )
+
+        _loginState.value = AuthFormState()
+        _registerState.value = AuthFormState()
     }
 
 
