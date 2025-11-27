@@ -130,7 +130,16 @@ object KtorClientProvider {
         }
     }
 
-    private fun startPingLoop() {
+    fun syncWithSystemNetwork(isAvailable: Boolean) {
+        if (!isAvailable) {
+            if (_networkStatus.value != NetworkStatus.OFFLINE) {
+                _networkStatus.value = NetworkStatus.OFFLINE
+                startPingLoop()
+            }
+        }
+    }
+
+    fun startPingLoop() {
         if (isPinging) return
         isPinging = true
 
@@ -138,28 +147,25 @@ object KtorClientProvider {
             _networkStatus.value = NetworkStatus.CONNECTING
 
             val rawClient = OkHttpClient.Builder()
-                .connectTimeout(5, TimeUnit.SECONDS)
-                .readTimeout(5, TimeUnit.SECONDS)
+                .connectTimeout(2, TimeUnit.SECONDS)
+                .readTimeout(2, TimeUnit.SECONDS)
                 .build()
 
-            repeat(10) {
+            repeat(20) {
                 try {
-                    val request = Request.Builder()
-                        .url(HEALTH_URL)
-                        .build()
-
+                    val request = Request.Builder().url(HEALTH_URL).build()
                     rawClient.newCall(request).execute().use { response ->
                         if (response.isSuccessful) {
+                            _networkStatus.value = NetworkStatus.CONNECTING
+                            delay(500)
                             _networkStatus.value = NetworkStatus.CONNECTED
                             isPinging = false
                             return@launch
                         }
                     }
-                } catch (_: Exception) {
+                } catch (_: Exception) { }
 
-                }
-
-                delay(3000)
+                delay(1500)
             }
 
             _networkStatus.value = NetworkStatus.OFFLINE

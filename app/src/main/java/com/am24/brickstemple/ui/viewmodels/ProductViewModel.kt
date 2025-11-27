@@ -22,6 +22,14 @@ open class ProductViewModel(
     private val _sections = MutableStateFlow<Map<String, ProductUiState>>(emptyMap())
     val sections = _sections.asStateFlow()
 
+    init {
+        loadType("set")
+        loadType("minifigure")
+        loadType("detail")
+        loadType("polybag")
+        loadType("other")
+    }
+
     private fun load(type: String, block: suspend () -> List<ProductDto>) {
         viewModelScope.launch {
 

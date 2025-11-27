@@ -14,6 +14,7 @@ import com.am24.brickstemple.auth.AuthSession
 import com.am24.brickstemple.auth.AuthStorage
 import com.am24.brickstemple.auth.LogoutManager
 import com.am24.brickstemple.data.remote.KtorClientProvider
+import com.am24.brickstemple.data.remote.NetworkObserver
 import com.am24.brickstemple.data.remote.NetworkStatus
 import com.am24.brickstemple.data.remote.ProductApiService
 import com.am24.brickstemple.data.remote.WishlistApiService
@@ -43,6 +44,13 @@ fun App() {
         LaunchedEffect(Unit) {
             AuthStorage.load(context)
         }
+
+        val systemOnline by NetworkObserver.isNetworkAvailable.collectAsState()
+
+        LaunchedEffect(systemOnline) {
+            KtorClientProvider.syncWithSystemNetwork(systemOnline)
+        }
+
 
         if (!AuthSession.isLoaded) {
             Box(
@@ -92,12 +100,6 @@ fun App() {
                 delay(300)
 
                 try { wishlistViewModel.refresh() } catch (_: Exception) {}
-
-                try { productViewModel.loadType("set") } catch (_: Exception) {}
-                try { productViewModel.loadType("minifigure") } catch (_: Exception) {}
-                try { productViewModel.loadType("detail") } catch (_: Exception) {}
-                try { productViewModel.loadType("polybag") } catch (_: Exception) {}
-                try { productViewModel.loadType("other") } catch (_: Exception) {}
 
                 if (AuthSession.isLoggedIn()) {
                     try { authViewModel.loadCurrentUser() } catch (_: Exception) {}
