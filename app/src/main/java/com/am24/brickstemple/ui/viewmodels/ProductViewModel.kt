@@ -5,6 +5,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.am24.brickstemple.data.remote.dto.ProductDto
 import com.am24.brickstemple.data.repositories.ProductRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -22,13 +25,39 @@ open class ProductViewModel(
     private val _sections = MutableStateFlow<Map<String, ProductUiState>>(emptyMap())
     val sections = _sections.asStateFlow()
 
+//    init {
+//        loadType("set")
+//        loadType("minifigure")
+//        loadType("detail")
+//        loadType("polybag")
+//        loadType("other")
+//    }
+
     init {
-        loadType("set")
-        loadType("minifigure")
-        loadType("detail")
-        loadType("polybag")
-        loadType("other")
+        loadAllTypesParallel()
     }
+
+    private fun loadAllTypesParallel() {
+        viewModelScope.launch {
+            coroutineScope {
+
+                val tasks = listOf(
+                    async { "set" to repo.getByType("set") },
+                    async { "minifigure" to repo.getByType("minifigure") },
+                    async { "detail" to repo.getByType("detail") },
+                    async { "polybag" to repo.getByType("polybag") },
+                    async { "other" to repo.getByType("other") }
+                )
+
+                val results = tasks.awaitAll()
+
+                results.forEach { (type, products) ->
+                    _sections.value += (type to ProductUiState(products = products))
+                }
+            }
+        }
+    }
+
 
     private fun load(type: String, block: suspend () -> List<ProductDto>) {
         viewModelScope.launch {
