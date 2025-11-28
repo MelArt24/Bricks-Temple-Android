@@ -17,7 +17,8 @@ data class ProductDemo(
     val price: String,
     val image: String,
     val inCart: Boolean = false,
-    val isFavorite: Boolean = false,
+    val isFavorite: Boolean? = false,
+    val favoriteLoading: Boolean = false,
     val isLoading: Boolean,
     )
 
@@ -72,7 +73,7 @@ fun CategorySection(
                     onClick = { onItemClick(product) },
                     onAddToCartClick = { onAddToCartClick(product) },
                     onFavoriteClick = { onFavoriteClick(product) },
-                    favoriteDisabled = product.isLoading
+                    favoriteLoading = product.favoriteLoading
                 )
 
                 Spacer(modifier = Modifier.width(12.dp))

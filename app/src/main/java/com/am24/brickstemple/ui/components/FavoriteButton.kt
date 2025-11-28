@@ -1,7 +1,9 @@
 package com.am24.brickstemple.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -16,37 +18,52 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun FavoriteButton(
-    isFavorite: Boolean,
+    isFavorite: Boolean?,
     isLoading: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (isLoading) {
-        Box(
-            modifier = modifier.size(24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(18.dp),
-                strokeWidth = 2.dp
+    when {
+        isLoading -> {
+            Box(
+                modifier = modifier.size(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp
+                )
+            }
+        }
+
+        isFavorite == null -> {
+            Box(
+                modifier = modifier
+                    .size(24.dp)
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant,
+                        shape = CircleShape
+                    )
             )
         }
-    } else {
-        IconButton(
-            onClick = onClick,
-            modifier = modifier.size(24.dp)
-        ) {
-            Icon(
-                imageVector = if (isFavorite)
-                    Icons.Filled.Favorite
-                else
-                    Icons.Filled.FavoriteBorder,
-                contentDescription = null,
-                tint = if (isFavorite)
-                    MaterialTheme.colorScheme.error
-                else
-                    MaterialTheme.colorScheme.onSurface
-            )
+
+        else -> {
+            IconButton(
+                onClick = onClick,
+                modifier = modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = if (isFavorite)
+                        Icons.Filled.Favorite
+                    else
+                        Icons.Filled.FavoriteBorder,
+                    contentDescription = null,
+                    tint = if (isFavorite)
+                        MaterialTheme.colorScheme.error
+                    else
+                        MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
     }
 }

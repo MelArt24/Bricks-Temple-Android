@@ -14,7 +14,10 @@ import com.am24.brickstemple.ui.components.ProductDemo
 import com.am24.brickstemple.ui.navigation.Screen
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
 import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
+import com.am24.brickstemple.utils.PriceFormatter
 import com.am24.brickstemple.utils.requireLogin
+import androidx.compose.foundation.layout.Box
+import com.am24.brickstemple.auth.AuthSession
 
 @Composable
 fun ProductListScreen(
@@ -23,159 +26,96 @@ fun ProductListScreen(
     productViewModel: ProductViewModel,
     wishlistViewModel: WishlistViewModel
 ) {
-    val sections = productViewModel.sections.collectAsState().value
-    val wishlist = wishlistViewModel.wishlist.collectAsState().value
+    val setsState = productViewModel.sets.collectAsState().value
+    val minifigsState = productViewModel.minifigs.collectAsState().value
+    val detailsState = productViewModel.details.collectAsState().value
+    val polybagsState = productViewModel.polybags.collectAsState().value
+    val othersState = productViewModel.others.collectAsState().value
 
+    val wishlist = wishlistViewModel.wishlist.collectAsState().value
     val updating = wishlistViewModel.isUpdating.collectAsState().value
 
-    val setsState = sections["set"]
-    val minifigsState = sections["minifigure"]
-    val detailsState = sections["detail"]
-    val polybagsState = sections["polybag"]
-    val othersState = sections["other"]
-
-    fun toggleCart(product: ProductDemo) {
-        // TODO
-    }
+    val wishlistLoading = wishlistViewModel.isLoading.collectAsState().value
+    val productsLoading = productViewModel.loading.collectAsState().value
+    val userIsLoggedIn = AuthSession.isLoggedIn()
 
     fun mapDtoToDemo(dto: ProductDto): ProductDemo {
         val id = dto.id
 
-        val isFavorite = id in wishlist
+        if (!userIsLoggedIn) {
+            return ProductDemo(
+                id = id,
+                name = dto.name,
+                price = PriceFormatter.format(dto.price) + "₴",
+                image = dto.image ?: "",
+                isFavorite = false,
+                favoriteLoading = false,
+                inCart = false,
+                isLoading = false
+            )
+        }
+
+        if (wishlistLoading) {
+            return ProductDemo(
+                id = id,
+                name = dto.name,
+                price = PriceFormatter.format(dto.price) + "₴",
+                image = dto.image ?: "",
+                isFavorite = null,
+                favoriteLoading = true,
+                inCart = false,
+                isLoading = false
+            )
+        }
+
+        val isFav = id in wishlist
 
         return ProductDemo(
-            id = dto.id,
+            id = id,
             name = dto.name,
-            price = "${dto.price}₴",
+            price = PriceFormatter.format(dto.price) + "₴",
             image = dto.image ?: "",
-            isFavorite = isFavorite,
+            isFavorite = isFav,
+            favoriteLoading = updating.contains(id),
             inCart = false,
             isLoading = updating.contains(id)
         )
     }
 
-    LazyColumn(
-        modifier = Modifier.padding(paddingValues),
-        contentPadding = PaddingValues(16.dp)
-    ) {
-        item {
-            val items = setsState?.products
-                ?.map { mapDtoToDemo(it) }
-                ?.take(5) ?: emptyList()
+    data class CategoryBlock(
+        val title: String,
+        val route: String,
+        val items: List<ProductDto>
+    )
 
-            CategorySection(
-                title = "Sets",
-                items = items,
-                onItemClick = { product ->
-                    navController.navigate(Screen.ProductDetails.pass(product.id))
-                },
-                onMoreClick = {
-                    navController.navigate(Screen.ProductCategory.pass("sets"))
-                },
-                onAddToCartClick = { product -> toggleCart(product) },
-                onFavoriteClick = { product ->
-                    requireLogin(navController) {
-                        wishlistViewModel.toggle(product.id)
-                    }
+    val blocks = listOf(
+        CategoryBlock("Sets", "sets", setsState.products),
+        CategoryBlock("Minifigures", "minifigures", minifigsState.products),
+        CategoryBlock("Details", "details", detailsState.products),
+        CategoryBlock("Polybags", "polybags", polybagsState.products),
+        CategoryBlock("Other", "other", othersState.products)
+    )
+
+    Box(Modifier.padding(paddingValues)) {
+        LazyColumn(contentPadding = PaddingValues(16.dp)) {
+            blocks.forEach { block ->
+                item {
+                    CategorySection(
+                        title = block.title,
+                        items = block.items.map { mapDtoToDemo(it) }.take(5),
+                        onItemClick = {
+                            navController.navigate(Screen.ProductDetails.pass(it.id))
+                        },
+                        onMoreClick = {
+                            navController.navigate(Screen.ProductCategory.pass(block.route))
+                        },
+                        onAddToCartClick = {},
+                        onFavoriteClick = {
+                            requireLogin(navController) { wishlistViewModel.toggle(it.id) }
+                        }
+                    )
                 }
-
-            )
-        }
-
-        item {
-            val items = minifigsState?.products
-                ?.map { mapDtoToDemo(it) }
-                ?.take(5) ?: emptyList()
-
-            CategorySection(
-                title = "Minifigures",
-                items = items,
-                onItemClick = { product ->
-                    navController.navigate(Screen.ProductDetails.pass(product.id))
-                },
-                onMoreClick = {
-                    navController.navigate(Screen.ProductCategory.pass("minifigures"))
-                },
-                onAddToCartClick = { product -> toggleCart(product) },
-                onFavoriteClick = { product ->
-                    requireLogin(navController) {
-                        wishlistViewModel.toggle(product.id)
-                    }
-                }
-
-            )
-        }
-
-        item {
-            val items = detailsState?.products
-                ?.map { mapDtoToDemo(it) }
-                ?.take(5) ?: emptyList()
-
-            CategorySection(
-                title = "Details",
-                items = items,
-                onItemClick = { product ->
-                    navController.navigate(Screen.ProductDetails.pass(product.id))
-                },
-                onMoreClick = {
-                    navController.navigate(Screen.ProductCategory.pass("details"))
-                },
-                onAddToCartClick = { product -> toggleCart(product) },
-                onFavoriteClick = { product ->
-                    requireLogin(navController) {
-                        wishlistViewModel.toggle(product.id)
-                    }
-                }
-
-            )
-        }
-
-        item {
-            val items = polybagsState?.products
-                ?.map { mapDtoToDemo(it) }
-                ?.take(5) ?: emptyList()
-
-            CategorySection(
-                title = "Polybags",
-                items = items,
-                onItemClick = { product ->
-                    navController.navigate(Screen.ProductDetails.pass(product.id))
-                },
-                onMoreClick = {
-                    navController.navigate(Screen.ProductCategory.pass("polybags"))
-                },
-                onAddToCartClick = { product -> toggleCart(product) },
-                onFavoriteClick = { product ->
-                    requireLogin(navController) {
-                        wishlistViewModel.toggle(product.id)
-                    }
-                }
-
-            )
-        }
-
-        item {
-            val items = othersState?.products
-                ?.map { mapDtoToDemo(it) }
-                ?.take(5) ?: emptyList()
-
-            CategorySection(
-                title = "Other",
-                items = items,
-                onItemClick = { product ->
-                    navController.navigate(Screen.ProductDetails.pass(product.id))
-                },
-                onMoreClick = {
-                    navController.navigate(Screen.ProductCategory.pass("other"))
-                },
-                onAddToCartClick = { product -> toggleCart(product) },
-                onFavoriteClick = { product ->
-                    requireLogin(navController) {
-                        wishlistViewModel.toggle(product.id)
-                    }
-                }
-
-            )
+            }
         }
     }
 

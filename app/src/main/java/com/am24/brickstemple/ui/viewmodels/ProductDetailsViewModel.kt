@@ -29,11 +29,22 @@ class ProductDetailsViewModel(
 
     private fun loadProduct() {
         viewModelScope.launch {
+
+            val local = repo.getLocalById(productId)
+            if (local != null) {
+                _uiState.value = ProductDetailsUiState(product = local)
+            } else {
+                _uiState.value = ProductDetailsUiState(isLoading = true)
+            }
+
             try {
-                val result = repo.getById(productId)
-                _uiState.value = ProductDetailsUiState(product = result)
+                val remote = repo.getById(productId)
+                _uiState.value = ProductDetailsUiState(product = remote)
             } catch (e: Exception) {
-                _uiState.value = ProductDetailsUiState(error = e.message)
+
+                if (local == null) {
+                    _uiState.value = ProductDetailsUiState(error = e.message)
+                }
             }
         }
     }

@@ -49,7 +49,7 @@ fun AppNavGraph(
             WishlistScreen(
                 navController = navController,
                 wishlistViewModel = wishlistViewModel,
-                productViewModel = productViewModel,
+                productDao = productViewModel.repo.productDao,
                 paddingValues = paddingValues
             )
         }
@@ -80,7 +80,8 @@ fun AppNavGraph(
                 id = id,
                 navController = navController,
                 paddingValues = paddingValues,
-                wishlistViewModel = wishlistViewModel
+                wishlistViewModel = wishlistViewModel,
+                productViewModel = productViewModel
             )
         }
 

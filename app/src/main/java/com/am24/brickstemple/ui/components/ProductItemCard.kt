@@ -6,8 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,12 +22,12 @@ fun ProductItemCard(
     name: String,
     price: String,
     imageUrl: String,
-    isFavorite: Boolean,
+    isFavorite: Boolean?,
     inCart: Boolean,
     onClick: () -> Unit,
     onAddToCartClick: () -> Unit,
     onFavoriteClick: () -> Unit,
-    favoriteDisabled: Boolean = false,
+    favoriteLoading: Boolean,
 ) {
     Column(
         modifier = Modifier
@@ -61,9 +59,8 @@ fun ProductItemCard(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+
             Text(
                 text = price,
                 style = MaterialTheme.typography.titleMedium
@@ -87,7 +84,7 @@ fun ProductItemCard(
 
             FavoriteButton(
                 isFavorite = isFavorite,
-                isLoading = favoriteDisabled,
+                isLoading = favoriteLoading,
                 onClick = onFavoriteClick,
                 modifier = Modifier.size(24.dp)
             )

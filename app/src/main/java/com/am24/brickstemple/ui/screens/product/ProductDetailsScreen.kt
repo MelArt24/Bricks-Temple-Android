@@ -7,23 +7,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.am24.brickstemple.data.repositories.ProductRepository
-import com.am24.brickstemple.ui.viewmodels.ProductDetailsViewModel
-import com.am24.brickstemple.data.remote.ProductApiService
-import com.am24.brickstemple.data.remote.KtorClientProvider
 import com.am24.brickstemple.ui.components.FavoriteButton
+import com.am24.brickstemple.ui.viewmodels.ProductViewModel
 import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
+import com.am24.brickstemple.utils.PriceFormatter
 import com.am24.brickstemple.utils.requireLogin
 
 @Composable
@@ -31,25 +26,26 @@ fun ProductDetailsScreen(
     id: Int?,
     navController: NavController,
     paddingValues: PaddingValues,
-    wishlistViewModel: WishlistViewModel
+    wishlistViewModel: WishlistViewModel,
+    productViewModel: ProductViewModel
 ) {
     if (id == null) {
         Text("Invalid product ID", modifier = Modifier.padding(paddingValues))
         return
     }
 
-    val repo = ProductRepository(ProductApiService(KtorClientProvider.client))
+    LaunchedEffect(id) {
+        productViewModel.loadById(id)
+    }
 
-    val viewModel: ProductDetailsViewModel =
-        viewModel(factory = ProductDetailsViewModel.Factory(id, repo))
+    val productState = productViewModel.productById.collectAsState().value
+    val p = productState.products.firstOrNull()
 
-    val state = viewModel.uiState.collectAsState().value
     val wishlist = wishlistViewModel.wishlist.collectAsState().value
-
     val updating = wishlistViewModel.isUpdating.collectAsState().value
 
     val isFavorite = id in wishlist
-    val isLoading = updating.contains(id)
+    val isLoadingWish = updating.contains(id)
 
     var inCart by remember { mutableStateOf(false) }
 
@@ -60,27 +56,19 @@ fun ProductDetailsScreen(
     ) {
 
         when {
-            state.isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+            productState.isLoading -> {
+                Box(Modifier.fillMaxSize(), Alignment.Center) {
                     CircularProgressIndicator()
                 }
             }
 
-            state.error != null -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Error: ${state.error}")
+            productState.error != null -> {
+                Box(Modifier.fillMaxSize(), Alignment.Center) {
+                    Text("Error: ${productState.error}")
                 }
             }
 
-            state.product != null -> {
-                val p = state.product
-
+            p != null -> {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -89,7 +77,7 @@ fun ProductDetailsScreen(
                 ) {
 
                     AsyncImage(
-                        model = p.image ?: "",
+                        model = p.image,
                         contentDescription = p.name,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -108,7 +96,7 @@ fun ProductDetailsScreen(
                     Spacer(Modifier.height(4.dp))
 
                     Text(
-                        text = "${p.price}₴",
+                        text = PriceFormatter.format(p.price) + "₴",
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold,
@@ -126,9 +114,7 @@ fun ProductDetailsScreen(
                         p.year?.let { "Year" to it },
                         p.size?.let { "Size" to it },
                         p.condition?.let { "Condition" to it },
-                        p.isAvailable?.let {
-                            if (it) "Available" to "In stock" else "Available" to "Out of stock"
-                        }
+                        "Available" to if (p.isAvailable) "In stock" else "Out of stock"
                     )
 
                     if (details.isNotEmpty()) {
@@ -146,7 +132,7 @@ fun ProductDetailsScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
                         ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
+                            Column(Modifier.padding(16.dp)) {
                                 details.forEach { (label, value) ->
                                     DetailRow(label, value)
                                     Spacer(Modifier.height(4.dp))
@@ -199,7 +185,7 @@ fun ProductDetailsScreen(
                     ) {
                         FavoriteButton(
                             isFavorite = isFavorite,
-                            isLoading = isLoading,
+                            isLoading = isLoadingWish,
                             onClick = {
                                 requireLogin(navController) {
                                     wishlistViewModel.toggle(p.id)

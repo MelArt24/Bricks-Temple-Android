@@ -1,8 +1,8 @@
-package com.am24.brickstemple.data.repositories
+package com.am24.brickstemple.data.fakes
 
 import com.am24.brickstemple.data.remote.WishlistApiService
-import com.am24.brickstemple.data.remote.dto.WishlistItemDto
 import com.am24.brickstemple.data.remote.dto.WishlistDto
+import com.am24.brickstemple.data.remote.dto.WishlistItemDto
 import com.am24.brickstemple.data.remote.dto.WishlistResponse
 import io.ktor.client.HttpClient
 import kotlinx.datetime.Clock
@@ -25,7 +25,7 @@ class FakeWishlistApiService : WishlistApiService(
             wishlist = WishlistDto(
                 id = 1,
                 userId = 1,
-                createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                createdAt = Clock.System.now().toLocalDateTime(TimeZone.Companion.UTC)
             ),
             items = serverItems.map { (productId, itemId, quantity) ->
                 WishlistItemDto(
@@ -33,7 +33,7 @@ class FakeWishlistApiService : WishlistApiService(
                     wishlistId = 1,
                     productId = productId,
                     quantity = quantity,
-                    addedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    addedAt = Clock.System.now().toLocalDateTime(TimeZone.Companion.UTC)
                 )
             }
         )
@@ -80,5 +80,5 @@ class FakeWishlistApiService : WishlistApiService(
 
 
     override suspend fun checkout() =
-        WishlistApiService.CreatedResponse("ok", 1)
+        CreatedResponse("ok", 1)
 }

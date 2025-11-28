@@ -13,10 +13,10 @@ open class WishlistRepository(
 
     private val scope = CoroutineScope(dispatcher + SupervisorJob())
 
-    private val _wishlist = MutableStateFlow<Map<Int, Int>>(emptyMap())
+    val _wishlist = MutableStateFlow<Map<Int, Int>>(emptyMap())
     val wishlist = _wishlist.asStateFlow()
 
-    private val _items = MutableStateFlow<List<WishlistItemDto>>(emptyList())
+    val _items = MutableStateFlow<List<WishlistItemDto>>(emptyList())
     val items = _items.asStateFlow()
 
     private val _isUpdating = MutableStateFlow<Set<Int>>(emptySet())
@@ -27,11 +27,24 @@ open class WishlistRepository(
 
     private val pendingJobs = mutableMapOf<Int, Job>()
 
-    open suspend fun refresh() = withContext(dispatcher) {
-        val response = api.getWishlist()
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading = _isLoading.asStateFlow()
 
-        _wishlist.value = response?.items?.associate { it.productId to it.id!! } ?: emptyMap()
-        _items.value = response?.items ?: emptyList()
+    private val _isLoaded = MutableStateFlow(false)
+    val isLoaded = _isLoaded.asStateFlow()
+
+    open suspend fun refresh() = withContext(dispatcher) {
+        _isLoading.value = true
+        try {
+            val response = api.getWishlist()
+
+            _wishlist.value = response?.items?.associate { it.productId to it.id!! } ?: emptyMap()
+            _items.value = response?.items ?: emptyList()
+
+            _isLoaded.value = true
+        } finally {
+            _isLoading.value = false
+        }
     }
 
     suspend fun removeCompletely(productId: Int) = withContext(dispatcher) {
@@ -56,9 +69,10 @@ open class WishlistRepository(
 
             pendingJobs.remove(productId)
 
-            if (pendingJobs.isEmpty()) {
-                refresh()
-            }
+// I let this code to be commented and not deleted
+//            if (pendingJobs.isEmpty()) {
+//                refresh()
+//            }
         }
 
         pendingJobs[productId] = job
@@ -94,7 +108,12 @@ open class WishlistRepository(
 
     fun clearLocal() {
         _wishlist.value = emptyMap()
+        _items.value = emptyList()
+        _isUpdating.value = emptySet()
+        _isClearing.value = false
+        _isLoaded.value = false
     }
+
 
     suspend fun clearWishlist() = withContext(dispatcher) {
         _isClearing.value = true

@@ -1,12 +1,15 @@
-package com.am24.brickstemple.data.repositories
+package com.am24.brickstemple.data.fakes
 
+import com.am24.brickstemple.data.mappers.toEntity
 import com.am24.brickstemple.data.remote.ProductApiService
 import com.am24.brickstemple.data.remote.dto.ProductDto
+import com.am24.brickstemple.data.repositories.ProductRepository
 import io.ktor.client.HttpClient
+import kotlinx.coroutines.Dispatchers
 
 class FakeProductApiService(client: HttpClient) : ProductApiService(client) {
 
-    private val products = listOf(
+    val products = mutableListOf(
         ProductDto(
             id = 1,
             name = "Millennium Falcon",
@@ -39,40 +42,49 @@ class FakeProductApiService(client: HttpClient) : ProductApiService(client) {
         )
     )
 
-    override suspend fun getAll(): List<ProductDto> = products
-
     override suspend fun getByType(type: String): List<ProductDto> =
         products.filter { it.type == type }
 
     override suspend fun getByCategory(category: String): List<ProductDto> =
         products.filter { it.category == category }
 
-    override suspend fun search(query: String): List<ProductDto> =
-        products.filter { it.name.contains(query, ignoreCase = true) }
-
-    override suspend fun getFiltered(
-        type: String?,
-        category: String?,
-        search: String?,
-        minPrice: String?,
-        maxPrice: String?,
-        year: String?
-    ): List<ProductDto> =
-        products.filter { p ->
-            (type == null || p.type == type) &&
-                    (category == null || p.category == category) &&
-                    (search == null || p.name.contains(search, ignoreCase = true)) &&
-                    (minPrice == null || p.price.toDouble() >= minPrice.toDouble()) &&
-                    (maxPrice == null || p.price.toDouble() <= maxPrice.toDouble()) &&
-                    (year == null || p.year.toString() == year)
-        }
-
     override suspend fun getProductById(id: Int): ProductDto =
         products.first { it.id == id }
 
-    override suspend fun getPaged(page: Int, limit: Int): List<ProductDto> {
-        val from = (page - 1) * limit
-        val to = minOf(from + limit, products.size)
-        return products.subList(from, to)
+
+}
+
+class FakeProductRepository : ProductRepository(
+    api = FakeApiService(),
+    dao = FakeProductDao(),
+    dispatcher = Dispatchers.Unconfined
+) {
+
+    var shouldThrow = false
+
+    private val product = ProductDto(
+        id = 1,
+        name = "Falcon",
+        category = "Star Wars",
+        type = "set",
+        price = "799",
+        year = "2023",
+        image = "",
+        description = ""
+    )
+
+    override suspend fun getById(id: Int): ProductDto {
+        if (shouldThrow) throw RuntimeException("Error loading")
+
+        productDao.insert(product.toEntity())
+
+        return product
+    }
+}
+
+class FakeApiService : ProductApiService(HttpClient()) {
+
+    override suspend fun getProductById(id: Int): ProductDto {
+        error("Should not be called")
     }
 }

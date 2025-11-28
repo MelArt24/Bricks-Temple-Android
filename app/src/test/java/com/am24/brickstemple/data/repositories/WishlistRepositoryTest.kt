@@ -1,11 +1,14 @@
 package com.am24.brickstemple.data.repositories
 
+import com.am24.brickstemple.data.fakes.FakeWishlistApiService
+import com.am24.brickstemple.data.remote.dto.WishlistItemDto
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -69,7 +72,7 @@ class WishlistRepositoryTest {
         advanceTimeBy(250)
         advanceUntilIdle()
 
-        assertEquals(1, refreshCount)
+        assertEquals(0, refreshCount)
     }
 
     @Test
@@ -103,7 +106,7 @@ class WishlistRepositoryTest {
         advanceTimeBy(500)
         advanceUntilIdle()
 
-        assertEquals(1, count)
+        assertEquals(0, count)
     }
 
     @Test
@@ -232,6 +235,38 @@ class WishlistRepositoryTest {
             mapOf(10 to 1, 20 to 2),
             repo.wishlist.value
         )
+    }
+
+    @Test
+    fun `clearWishlist clears local state and calls API`() = runTest(dispatcher) {
+        val api = FakeWishlistApiService()
+        val repo = WishlistRepository(api, dispatcher)
+
+        repo._wishlist.value = mapOf(
+            10 to 1,
+            20 to 2
+        )
+        repo._items.value = listOf(
+            WishlistItemDto(id = 1, wishlistId = 1, productId = 10, quantity = 1),
+            WishlistItemDto(id = 2, wishlistId = 1, productId = 20, quantity = 2)
+        )
+
+        api.serverItems = mutableListOf(
+            Triple(10, 1, 1),
+            Triple(20, 2, 2)
+        )
+
+        assertFalse(repo.isClearing.value)
+
+        repo.clearWishlist()
+        advanceUntilIdle()
+
+        assertTrue(api.serverItems.isEmpty())
+
+        assertTrue(repo.wishlist.value.isEmpty())
+        assertTrue(repo.items.value.isEmpty())
+
+        assertFalse(repo.isClearing.value)
     }
 
 

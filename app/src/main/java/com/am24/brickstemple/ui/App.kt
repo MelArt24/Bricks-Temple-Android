@@ -10,9 +10,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.room.Room
 import com.am24.brickstemple.auth.AuthSession
 import com.am24.brickstemple.auth.AuthStorage
 import com.am24.brickstemple.auth.LogoutManager
+import com.am24.brickstemple.data.local.db.AppDatabase
 import com.am24.brickstemple.data.remote.KtorClientProvider
 import com.am24.brickstemple.data.remote.NetworkObserver
 import com.am24.brickstemple.data.remote.NetworkStatus
@@ -51,7 +53,6 @@ fun App() {
             KtorClientProvider.syncWithSystemNetwork(systemOnline)
         }
 
-
         if (!AuthSession.isLoaded) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -61,6 +62,18 @@ fun App() {
             }
             return@BricksTempleTheme
         }
+
+
+        val db = remember {
+            Room.databaseBuilder(
+                context,
+                AppDatabase::class.java,
+                "bricks_temple.db"
+            ).fallbackToDestructiveMigration()
+                .build()
+        }
+        val productDao = remember { db.productDao() }
+
 
         val navController = rememberNavController()
         val navBackStackEntry = navController.currentBackStackEntryAsState().value
@@ -79,7 +92,10 @@ fun App() {
         }
 
         val productRepository = remember {
-            ProductRepository(ProductApiService(KtorClientProvider.client))
+            ProductRepository(
+                api = ProductApiService(KtorClientProvider.client),
+                dao = productDao
+            )
         }
 
         val wishlistRepository = remember {

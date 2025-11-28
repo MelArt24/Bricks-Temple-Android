@@ -1,10 +1,18 @@
 package com.am24.brickstemple.ui.screens.wishlist
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -18,51 +26,56 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import com.am24.brickstemple.ui.navigation.Screen
-import com.am24.brickstemple.ui.viewmodels.ProductViewModel
-import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Remove
+import com.am24.brickstemple.data.local.dao.ProductDao
+import com.am24.brickstemple.data.mappers.toDto
 import com.am24.brickstemple.ui.components.WishlistBottomBar
+import com.am24.brickstemple.ui.navigation.Screen
+import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
+import com.am24.brickstemple.utils.PriceFormatter
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun WishlistScreen(
     navController: NavController,
     wishlistViewModel: WishlistViewModel,
-    productViewModel: ProductViewModel,
+    productDao: ProductDao,
     paddingValues: PaddingValues
 ) {
     val wishlist = wishlistViewModel.wishlist.collectAsState().value
     val updating = wishlistViewModel.isUpdating.collectAsState().value
     val updatingQuantity = wishlistViewModel.updatingQuantity.collectAsState().value
+    val isClearing = wishlistViewModel.isClearing.collectAsState().value
+    val isLoading = wishlistViewModel.isLoading.collectAsState().value
 
-    val sections = productViewModel.sections.collectAsState().value
-    val allProducts = sections.values.flatMap { it.products }
-    val items = allProducts.filter { it.id in wishlist }
+    var products by remember { mutableStateOf(emptyList<com.am24.brickstemple.data.remote.dto.ProductDto>()) }
+
+    val productIds = wishlist.keys.toList()
+
+    LaunchedEffect(productIds) {
+        products =
+            if (productIds.isEmpty()) emptyList()
+            else productDao
+                .getByIds(productIds)
+                .map { it.toDto() }
+    }
 
     val itemDtos = wishlistViewModel.items.collectAsState().value
     val itemMap = itemDtos.associateBy { it.productId }
-
-    val isClearing = wishlistViewModel.isClearing.collectAsState().value
 
     var refreshing by remember { mutableStateOf(false) }
 
     LaunchedEffect(refreshing) {
         if (refreshing) {
             wishlistViewModel.refresh()
+
+            if (productIds.isNotEmpty()) {
+                products = productDao.getByIds(productIds).map { it.toDto() }
+            }
+
             refreshing = false
         }
     }
@@ -79,58 +92,78 @@ fun WishlistScreen(
             .fillMaxSize()
     ) {
 
-        if (items.isEmpty()) {
-            WishlistEmptyScreen(
-                onGoToProductsClick = {
-                    navController.navigate(Screen.ProductList.route) {
-                        launchSingleTop = true
-                        restoreState = true
-                        popUpTo(Screen.ProductList.route)
-                    }
-                }
-            )
-        } else {
-            Column(modifier = Modifier.fillMaxSize()) {
-
-                LazyColumn(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+        when {
+            isLoading && wishlist.isEmpty() -> {
+                Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    items(items, key = { it.id }) { p ->
-                        val dto = itemMap[p.id]
-                        val quantity = dto?.quantity ?: 1
-                        val spinQty = (updatingQuantity == p.id)
-                        val isUpdatingItem = p.id in updating
-
-                        WishlistItemRow(
-                            name = p.name,
-                            priceText = "${p.price}₴",
-                            imageUrl = p.image ?: "",
-                            quantity = quantity,
-                            spinQuantity = spinQty,
-                            isUpdating = isUpdatingItem,
-                            onClick = { navController.navigate(Screen.ProductDetails.pass(p.id)) },
-                            onIncrease = {
-                                if (!isUpdatingItem) wishlistViewModel.updateQuantity(p.id, +1)
-                            },
-                            onDecrease = {
-                                if (!isUpdatingItem && !spinQty && quantity > 0)
-                                    wishlistViewModel.updateQuantity(p.id, -1)
-                            },
-                            onRemove = { wishlistViewModel.toggle(p.id) },
-                            onAddToCart = { /* TODO */ }
-                        )
-                    }
+                    CircularProgressIndicator()
                 }
+            }
 
-                WishlistBottomBar(
-                    onClear = { wishlistViewModel.clearWishlist() },
-                    onCheckout = { /* TODO: checkout flow */ },
-                    enabled = updating.isEmpty() && !refreshing
+            products.isEmpty() -> {
+                WishlistEmptyScreen(
+                    onGoToProductsClick = {
+                        navController.navigate(Screen.ProductList.route) {
+                            launchSingleTop = true
+                            restoreState = true
+                            popUpTo(Screen.ProductList.route)
+                        }
+                    }
                 )
+            }
+
+            else -> {
+                Column(Modifier.fillMaxSize()) {
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(products, key = { it.id }) { p ->
+
+                            val dto = itemMap[p.id]
+                            val quantity = dto?.quantity ?: 1
+                            val spinQty = updatingQuantity == p.id
+                            val isUpdatingItem = p.id in updating
+
+                            WishlistItemRow(
+                                name = p.name,
+                                priceText = PriceFormatter.format(p.price) + "₴",
+                                imageUrl = p.image ?: "",
+                                quantity = quantity,
+                                spinQuantity = spinQty,
+                                isUpdating = isUpdatingItem,
+                                onClick = {
+                                    navController.navigate(Screen.ProductDetails.pass(p.id))
+                                },
+                                onIncrease = {
+                                    if (!isUpdatingItem) wishlistViewModel.updateQuantity(p.id, +1)
+                                },
+                                onDecrease = {
+                                    if (!isUpdatingItem && !spinQty && quantity > 0)
+                                        wishlistViewModel.updateQuantity(p.id, -1)
+                                },
+                                onRemove = {
+                                    wishlistViewModel.toggle(p.id)
+                                },
+                                onAddToCart = {
+                                    // TODO
+                                }
+                            )
+                        }
+                    }
+
+                    WishlistBottomBar(
+                        onClear = { wishlistViewModel.clearWishlist() },
+                        onCheckout = { /* TODO */ },
+                        enabled = updating.isEmpty() && !refreshing && !isClearing
+                    )
+                }
             }
         }
 
@@ -140,7 +173,7 @@ fun WishlistScreen(
             modifier = Modifier.align(Alignment.TopCenter)
         )
 
-        if (updating.isNotEmpty()) {
+        if (updating.isNotEmpty() || isClearing) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -150,20 +183,9 @@ fun WishlistScreen(
                 CircularProgressIndicator()
             }
         }
-
-        if (isClearing) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        }
-
     }
 }
+
 
 @Composable
 private fun WishlistItemRow(
@@ -275,7 +297,7 @@ private fun WishlistItemRow(
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
-                        imageVector =Icons.Default.Delete,
+                        imageVector = Icons.Default.Delete,
                         contentDescription = "Remove from wishlist",
                         tint = MaterialTheme.colorScheme.error
                     )

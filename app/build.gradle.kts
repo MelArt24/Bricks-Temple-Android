@@ -5,6 +5,7 @@ plugins {
 
     kotlin("plugin.serialization")
     id("jacoco")
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -117,6 +118,12 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+
+    ksp("androidx.room:room-compiler:2.6.1")
+
+    implementation("com.google.accompanist:accompanist-placeholder-material:0.34.0")
 
     testImplementation("io.ktor:ktor-client-mock:2.3.9")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
@@ -126,6 +133,7 @@ dependencies {
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.0")
     testImplementation("androidx.test:core:1.5.0")
     testImplementation("androidx.test:core-ktx:1.5.0")
+    testImplementation("androidx.room:room-testing:2.6.1")
 
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

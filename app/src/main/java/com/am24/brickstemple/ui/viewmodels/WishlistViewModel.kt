@@ -16,6 +16,8 @@ class WishlistViewModel(
     val items = repo.items
     val isUpdating = repo.isUpdating
     val isClearing = repo.isClearing
+    val isLoading = repo.isLoading
+    val loaded = repo.isLoaded
 
     private val _updatingQuantity = MutableStateFlow<Int?>(null)
     val updatingQuantity = _updatingQuantity.asStateFlow()
@@ -59,8 +61,12 @@ class WishlistViewModel(
     }
 
     fun reset() {
-        repo.clearLocal()
+        viewModelScope.launch {
+            repo.clearLocal()
+            _updatingQuantity.value = null
+        }
     }
+
 
     fun clearWishlist() {
         viewModelScope.launch {

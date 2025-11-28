@@ -5,114 +5,113 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.am24.brickstemple.data.remote.dto.ProductDto
 import com.am24.brickstemple.data.repositories.ProductRepository
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 data class ProductUiState(
     val isLoading: Boolean = false,
     val products: List<ProductDto> = emptyList(),
-    val error: String? = null,
+    val error: String? = null
 )
 
-open class ProductViewModel(
-    private val repo: ProductRepository
+class ProductViewModel(
+    val repo: ProductRepository
 ) : ViewModel() {
 
-    private val _sections = MutableStateFlow<Map<String, ProductUiState>>(emptyMap())
-    val sections = _sections.asStateFlow()
+    private val _sets = MutableStateFlow(ProductUiState())
+    val sets = _sets.asStateFlow()
 
-//    init {
-//        loadType("set")
-//        loadType("minifigure")
-//        loadType("detail")
-//        loadType("polybag")
-//        loadType("other")
-//    }
+    private val _minifigs = MutableStateFlow(ProductUiState())
+    val minifigs = _minifigs.asStateFlow()
+
+    private val _details = MutableStateFlow(ProductUiState())
+    val details = _details.asStateFlow()
+
+    private val _polybags = MutableStateFlow(ProductUiState())
+    val polybags = _polybags.asStateFlow()
+
+    private val _others = MutableStateFlow(ProductUiState())
+    val others = _others.asStateFlow()
+
+    private val _searchResult = MutableStateFlow(ProductUiState())
+    val searchResult = _searchResult.asStateFlow()
+
+    private val _loading = MutableStateFlow(true)
+    val loading = _loading.asStateFlow()
 
     init {
-        loadAllTypesParallel()
-    }
-
-    private fun loadAllTypesParallel() {
         viewModelScope.launch {
-            coroutineScope {
+            _loading.value = true
 
-                val tasks = listOf(
-                    async { "set" to repo.getByType("set") },
-                    async { "minifigure" to repo.getByType("minifigure") },
-                    async { "detail" to repo.getByType("detail") },
-                    async { "polybag" to repo.getByType("polybag") },
-                    async { "other" to repo.getByType("other") }
-                )
-
-                val results = tasks.awaitAll()
-
-                results.forEach { (type, products) ->
-                    _sections.value += (type to ProductUiState(products = products))
-                }
-            }
-        }
-    }
-
-
-    private fun load(type: String, block: suspend () -> List<ProductDto>) {
-        viewModelScope.launch {
-
-            _sections.value += (type to ProductUiState(isLoading = true))
+            loadLocalCache()
 
             try {
-                val result = block()
-                _sections.value += (type to ProductUiState(products = result))
+                repo.refreshAllTypesParallel()
+            } catch (_: Exception) {
 
-            } catch (e: Exception) {
-                _sections.value += (type to ProductUiState(error = e.message))
+            } finally {
+                loadLocalCache()
+                _loading.value = false
             }
         }
     }
 
-    fun loadType(type: String) = load(type) {
-        repo.getByType(type)
+
+
+    private suspend fun loadLocalCache() {
+        _sets.value = ProductUiState(products = repo.getCachedByType("set"))
+        _minifigs.value = ProductUiState(products = repo.getCachedByType("minifigure"))
+        _details.value = ProductUiState(products = repo.getCachedByType("detail"))
+        _polybags.value = ProductUiState(products = repo.getCachedByType("polybag"))
+        _others.value = ProductUiState(products = repo.getCachedByType("other"))
     }
 
-    fun loadCategory(category: String) = load("category:$category") {
-        repo.getByCategory(category)
+    fun search(query: String) {
+        viewModelScope.launch {
+            if (query.isBlank()) {
+                _searchResult.value = ProductUiState(products = emptyList())
+                return@launch
+            }
+
+            _searchResult.value = ProductUiState(isLoading = true)
+
+            try {
+                val result = repo.searchLocal(query)
+                _searchResult.value = ProductUiState(products = result)
+            } catch (e: Exception) {
+                _searchResult.value = ProductUiState(error = e.message)
+            }
+        }
     }
 
-    fun search(query: String) = load("search:$query") {
-        repo.search(query)
-    }
+    private val _productById = MutableStateFlow(ProductUiState())
+    val productById = _productById.asStateFlow()
 
-    fun loadFiltered(
-        type: String? = null,
-        category: String? = null,
-        search: String? = null,
-        minPrice: String? = null,
-        maxPrice: String? = null,
-        year: String? = null
-    ) = load("filtered") {
-        repo.getFiltered(type, category, search, minPrice, maxPrice, year)
-    }
+    fun loadById(id: Int) {
+        viewModelScope.launch {
+            _productById.value = ProductUiState(isLoading = true)
 
-    fun loadPaged(page: Int, limit: Int) = load("paged:$page") {
-        repo.getPaged(page, limit)
-    }
+            try {
+                val local = repo.getLocalById(id)
+                if (local != null)
+                    _productById.value = ProductUiState(products = listOf(local))
 
-    fun loadById(id: Int) = load("id:$id") {
-        listOf(repo.getById(id))
+                val updated = repo.getById(id)
+                _productById.value = ProductUiState(products = listOf(updated))
+
+            } catch (e: Exception) {
+                _productById.value = ProductUiState(error = e.message)
+            }
+        }
     }
 
     class Factory(
-        private val repository: ProductRepository
+        private val repo: ProductRepository
     ) : ViewModelProvider.Factory {
-
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(ProductViewModel::class.java)) {
-                return ProductViewModel(repository) as T
+                return ProductViewModel(repo) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }

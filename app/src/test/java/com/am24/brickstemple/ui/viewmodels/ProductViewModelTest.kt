@@ -1,6 +1,7 @@
 package com.am24.brickstemple.ui.viewmodels
 
-import com.am24.brickstemple.data.repositories.FakeProductApiService
+import com.am24.brickstemple.data.fakes.FakeProductApiService
+import com.am24.brickstemple.data.fakes.FakeProductDao
 import com.am24.brickstemple.data.repositories.ProductRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -18,6 +19,9 @@ class ProductViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
+    private lateinit var dao: FakeProductDao
+    private lateinit var api: FakeProductApiService
+    private lateinit var repo: ProductRepository
     private lateinit var vm: ProductViewModel
 
     @Before
@@ -28,64 +32,45 @@ class ProductViewModelTest {
             }
         })
 
-        val repo = ProductRepository(api, mainDispatcherRule.dispatcher)
-
+        dao = FakeProductDao()
+        repo = ProductRepository(api, dao, mainDispatcherRule.dispatcher)
         vm = ProductViewModel(repo)
     }
 
     @Test
-    fun `loadType loads correct items`() = runTest {
-        vm.loadType("set")
+    fun `initial load fills category lists`() = runTest {
         advanceUntilIdle()
 
-        val state = vm.sections.value["set"]!!
-        assertEquals(2, state.products.size)
+        assertTrue(vm.sets.value.products.isNotEmpty())
+        assertTrue(vm.minifigs.value.products.isNotEmpty())
     }
 
     @Test
-    fun `loadCategory loads correct items`() = runTest {
-        vm.loadCategory("Star Wars")
+    fun `search finds matching products`() = runTest {
         advanceUntilIdle()
 
-        val state = vm.sections.value["category:Star Wars"]!!
-        assertEquals(2, state.products.size)
-    }
-
-    @Test
-    fun `search loads search results`() = runTest {
         vm.search("Falcon")
         advanceUntilIdle()
 
-        val state = vm.sections.value["search:Falcon"]!!
-        assertEquals(1, state.products.size)
-        assertEquals("Millennium Falcon", state.products.first().name)
+        val result = vm.searchResult.value.products
+        assertEquals(1, result.size)
+        assertEquals("Millennium Falcon", result.first().name)
     }
 
     @Test
-    fun `loadFiltered loads products`() = runTest {
-        vm.loadFiltered(type = "set")
-        advanceUntilIdle()
-
-        val state = vm.sections.value["filtered"]!!
-        assertEquals(2, state.products.size)
-    }
-
-    @Test
-    fun `loadPaged loads correct items`() = runTest {
-        vm.loadPaged(page = 1, limit = 2)
-        advanceUntilIdle()
-
-        val state = vm.sections.value["paged:1"]!!
-        assertEquals(2, state.products.size)
-    }
-
-    @Test
-    fun `loadById loads single product`() = runTest {
+    fun `loadById loads product correctly`() = runTest {
         vm.loadById(1)
         advanceUntilIdle()
 
-        val state = vm.sections.value["id:1"]!!
-        assertEquals(1, state.products.size)
-        assertEquals(1, state.products.first().id)
+        val result = vm.productById.value.products
+        assertEquals(1, result.first().id)
+    }
+
+    @Test
+    fun `loadLocalCache loads sets correctly`() = runTest {
+        advanceUntilIdle()
+
+        val sets = vm.sets.value.products
+        assertEquals(2, sets.count { it.type == "set" })
     }
 }

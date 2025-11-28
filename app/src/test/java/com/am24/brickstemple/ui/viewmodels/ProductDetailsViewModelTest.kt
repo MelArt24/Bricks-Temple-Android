@@ -1,5 +1,6 @@
 package com.am24.brickstemple.ui.viewmodels
 
+import com.am24.brickstemple.data.fakes.FakeProductRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest

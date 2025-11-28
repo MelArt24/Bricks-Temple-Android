@@ -10,7 +10,6 @@ import com.am24.brickstemple.data.repositories.AuthRepositoryImpl
 import com.am24.brickstemple.domain.repositories.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -36,7 +35,6 @@ class AuthViewModel(
     val registerState: StateFlow<AuthFormState> = _registerState
 
     private val _uiState = MutableStateFlow(AuthFormState())
-//    val uiState: StateFlow<AuthFormState> = _uiState.asStateFlow()
 
     fun onLoginEmailChange(value: String) {
         _loginState.update { it.copy(email = value, errorMessage = null) }

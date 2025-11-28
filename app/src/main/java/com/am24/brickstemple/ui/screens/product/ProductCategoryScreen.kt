@@ -14,6 +14,7 @@ import com.am24.brickstemple.ui.components.ProductItemCard
 import com.am24.brickstemple.ui.navigation.Screen
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
 import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
+import com.am24.brickstemple.utils.PriceFormatter
 import com.am24.brickstemple.utils.requireLogin
 
 @Composable
@@ -25,26 +26,11 @@ fun ProductCategoryScreen(
     paddingValues: PaddingValues
 ) {
     if (category == null) {
-        Text("Invalid category")
+        Text("Invalid category", modifier = Modifier.padding(paddingValues))
         return
     }
 
-    LaunchedEffect(category) {
-        productViewModel.loadType(
-            when (category) {
-                "sets" -> "set"
-                "minifigures" -> "minifigure"
-                "details" -> "detail"
-                "polybags" -> "polybag"
-                else -> "other"
-            }
-        )
-    }
-
-    val wishlist = wishlistViewModel.wishlist.collectAsState().value
-    val sections = productViewModel.sections.collectAsState().value
-
-    val key = when (category) {
+    val type = when (category) {
         "sets" -> "set"
         "minifigures" -> "minifigure"
         "details" -> "detail"
@@ -52,23 +38,38 @@ fun ProductCategoryScreen(
         else -> "other"
     }
 
-    val state = sections[key]
+    val state by when (type) {
+        "set" -> productViewModel.sets.collectAsState()
+        "minifigure" -> productViewModel.minifigs.collectAsState()
+        "detail" -> productViewModel.details.collectAsState()
+        "polybag" -> productViewModel.polybags.collectAsState()
+        else -> productViewModel.others.collectAsState()
+    }
+
+    val wishlist = wishlistViewModel.wishlist.collectAsState().value
+    val updating = wishlistViewModel.isUpdating.collectAsState().value
 
     when {
-        state == null || state.isLoading -> {
+        state.isLoading && state.products.isEmpty() -> {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator() }
+            ) {
+                CircularProgressIndicator()
+            }
         }
 
-        state.error != null -> {
-            Text(
-                text = "Error: ${state.error}",
-                modifier = Modifier.padding(paddingValues)
-            )
+        state.error != null && state.products.isEmpty() -> {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Error: ${state.error}")
+            }
         }
 
         else -> {
@@ -76,6 +77,7 @@ fun ProductCategoryScreen(
                 products = state.products,
                 navController = navController,
                 wishlist = wishlist.keys.toList(),
+                updating = updating,
                 wishlistViewModel = wishlistViewModel,
                 paddingValues = paddingValues
             )
@@ -83,15 +85,18 @@ fun ProductCategoryScreen(
     }
 }
 
+
+
 @Composable
 fun CategoryContent(
     products: List<ProductDto>,
     navController: NavController,
     wishlist: List<Int>,
+    updating: Set<Int>,
     wishlistViewModel: WishlistViewModel,
     paddingValues: PaddingValues
 ) {
-    val updating = wishlistViewModel.isUpdating.collectAsState().value
+    val wishlistLoaded = !wishlistViewModel.isLoading.collectAsState().value
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -104,27 +109,31 @@ fun CategoryContent(
     ) {
         items(products.size) { index ->
             val p = products[index]
-            val isFav = p.id in wishlist
-            val isLoading = updating.contains(p.id)
+
+            val isFavorite = if (wishlistLoaded) {
+                p.id in wishlist
+            } else null
+
+            val favoriteLoading = !wishlistLoaded || updating.contains(p.id)
 
             ProductItemCard(
                 name = p.name,
-                price = "${p.price}₴",
+                price = PriceFormatter.format(p.price) + "₴",
                 imageUrl = p.image ?: "",
-                isFavorite = isFav,
+                isFavorite = isFavorite == true,
                 inCart = false,
                 onClick = {
                     navController.navigate(Screen.ProductDetails.pass(p.id))
                 },
                 onAddToCartClick = {
-                // TODO
+                    // TODO cart later
                 },
                 onFavoriteClick = {
                     requireLogin(navController) {
                         wishlistViewModel.toggle(p.id)
                     }
                 },
-                favoriteDisabled = isLoading
+                favoriteLoading = favoriteLoading
             )
         }
     }
