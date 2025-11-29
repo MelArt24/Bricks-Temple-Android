@@ -18,8 +18,10 @@ import com.am24.brickstemple.data.local.db.AppDatabase
 import com.am24.brickstemple.data.remote.KtorClientProvider
 import com.am24.brickstemple.data.remote.NetworkObserver
 import com.am24.brickstemple.data.remote.NetworkStatus
+import com.am24.brickstemple.data.remote.OrderApiService
 import com.am24.brickstemple.data.remote.ProductApiService
 import com.am24.brickstemple.data.remote.WishlistApiService
+import com.am24.brickstemple.data.repositories.CartRepository
 import com.am24.brickstemple.data.repositories.ProductRepository
 import com.am24.brickstemple.data.repositories.WishlistRepository
 import com.am24.brickstemple.ui.navigation.AppNavGraph
@@ -32,6 +34,7 @@ import com.am24.brickstemple.ui.navigation.shouldShowBottomBar
 import com.am24.brickstemple.ui.navigation.shouldShowTopBar
 import com.am24.brickstemple.ui.theme.BricksTempleTheme
 import com.am24.brickstemple.ui.viewmodels.AuthViewModel
+import com.am24.brickstemple.ui.viewmodels.CartViewModel
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
 import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
 import kotlinx.coroutines.delay
@@ -123,6 +126,28 @@ fun App() {
             }
         }
 
+
+        val cartDao = remember { db.cartDao() }
+
+        val orderApi = remember {
+            OrderApiService(
+                client = KtorClientProvider.client
+            )
+        }
+
+        val cartRepository = remember {
+            CartRepository(
+                cartDao = cartDao,
+                productDao = productDao,
+                orderApi = orderApi
+            )
+        }
+
+
+        val cartViewModel: CartViewModel =
+            viewModel(factory = CartViewModel.Factory(cartRepository))
+
+
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
@@ -170,7 +195,8 @@ fun App() {
                     paddingValues = innerPadding,
                     productViewModel = productViewModel,
                     authViewModel = authViewModel,
-                    wishlistViewModel = wishlistViewModel
+                    wishlistViewModel = wishlistViewModel,
+                    cartViewModel = cartViewModel
                 )
             }
         }

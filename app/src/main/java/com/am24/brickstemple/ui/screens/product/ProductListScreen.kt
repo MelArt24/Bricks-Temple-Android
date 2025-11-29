@@ -18,13 +18,15 @@ import com.am24.brickstemple.utils.PriceFormatter
 import com.am24.brickstemple.utils.requireLogin
 import androidx.compose.foundation.layout.Box
 import com.am24.brickstemple.auth.AuthSession
+import com.am24.brickstemple.ui.viewmodels.CartViewModel
 
 @Composable
 fun ProductListScreen(
     navController: NavController,
     paddingValues: PaddingValues,
     productViewModel: ProductViewModel,
-    wishlistViewModel: WishlistViewModel
+    wishlistViewModel: WishlistViewModel,
+    cartViewModel: CartViewModel
 ) {
     val setsState = productViewModel.sets.collectAsState().value
     val minifigsState = productViewModel.minifigs.collectAsState().value
@@ -38,6 +40,8 @@ fun ProductListScreen(
     val wishlistLoading = wishlistViewModel.isLoading.collectAsState().value
     val productsLoading = productViewModel.loading.collectAsState().value
     val userIsLoggedIn = AuthSession.isLoggedIn()
+
+    val cart = cartViewModel.cart.collectAsState().value
 
     fun mapDtoToDemo(dto: ProductDto): ProductDemo {
         val id = dto.id
@@ -77,7 +81,7 @@ fun ProductListScreen(
             image = dto.image ?: "",
             isFavorite = isFav,
             favoriteLoading = updating.contains(id),
-            inCart = false,
+            inCart = cart.containsKey(id),
             isLoading = updating.contains(id)
         )
     }
@@ -109,7 +113,11 @@ fun ProductListScreen(
                         onMoreClick = {
                             navController.navigate(Screen.ProductCategory.pass(block.route))
                         },
-                        onAddToCartClick = {},
+                        onAddToCartClick = {
+                            requireLogin(navController) {
+                                cartViewModel.toggle(it.id)
+                            }
+                        },
                         onFavoriteClick = {
                             requireLogin(navController) { wishlistViewModel.toggle(it.id) }
                         }

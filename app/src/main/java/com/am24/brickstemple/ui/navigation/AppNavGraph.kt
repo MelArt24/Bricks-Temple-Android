@@ -19,6 +19,7 @@ import com.am24.brickstemple.ui.screens.profile.ProfileScreen
 import com.am24.brickstemple.ui.screens.settings.SettingsScreen
 import com.am24.brickstemple.ui.screens.splash.SplashScreen
 import com.am24.brickstemple.ui.viewmodels.AuthViewModel
+import com.am24.brickstemple.ui.viewmodels.CartViewModel
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
 import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
 
@@ -28,7 +29,8 @@ fun AppNavGraph(
     paddingValues: PaddingValues,
     productViewModel: ProductViewModel,
     authViewModel: AuthViewModel,
-    wishlistViewModel: WishlistViewModel
+    wishlistViewModel: WishlistViewModel,
+    cartViewModel: CartViewModel
 ) {
     NavHost(
         navController = navController,
@@ -39,11 +41,19 @@ fun AppNavGraph(
                 navController = navController,
                 paddingValues = paddingValues,
                 productViewModel = productViewModel,
-                wishlistViewModel = wishlistViewModel
+                wishlistViewModel = wishlistViewModel,
+                cartViewModel = cartViewModel
             )
         }
 
-        composable(Screen.Cart.route) { CartScreen(navController) }
+        composable(Screen.Cart.route) {
+            CartScreen(
+                navController = navController,
+                viewModel = cartViewModel,
+                productDao = productViewModel.repo.productDao,
+                paddingValues = paddingValues
+            )
+        }
 
         composable(Screen.Wishlist.route) {
             WishlistScreen(
@@ -81,7 +91,8 @@ fun AppNavGraph(
                 navController = navController,
                 paddingValues = paddingValues,
                 wishlistViewModel = wishlistViewModel,
-                productViewModel = productViewModel
+                productViewModel = productViewModel,
+                cartViewModel = cartViewModel
             )
         }
 
@@ -92,6 +103,7 @@ fun AppNavGraph(
                 navController = navController,
                 productViewModel = productViewModel,
                 paddingValues = paddingValues,
+                cartViewModel = cartViewModel,
                 wishlistViewModel = wishlistViewModel
             )
         }

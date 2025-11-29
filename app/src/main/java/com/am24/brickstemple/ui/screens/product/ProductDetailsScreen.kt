@@ -16,6 +16,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.am24.brickstemple.ui.components.FavoriteButton
+import com.am24.brickstemple.ui.navigation.Screen
+import com.am24.brickstemple.ui.viewmodels.CartViewModel
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
 import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
 import com.am24.brickstemple.utils.PriceFormatter
@@ -27,7 +29,8 @@ fun ProductDetailsScreen(
     navController: NavController,
     paddingValues: PaddingValues,
     wishlistViewModel: WishlistViewModel,
-    productViewModel: ProductViewModel
+    productViewModel: ProductViewModel,
+    cartViewModel: CartViewModel
 ) {
     if (id == null) {
         Text("Invalid product ID", modifier = Modifier.padding(paddingValues))
@@ -47,7 +50,8 @@ fun ProductDetailsScreen(
     val isFavorite = id in wishlist
     val isLoadingWish = updating.contains(id)
 
-    var inCart by remember { mutableStateOf(false) }
+    val inCart by cartViewModel.cart.collectAsState()
+    val isInCart = inCart.containsKey(id)
 
     Box(
         modifier = Modifier
@@ -197,13 +201,17 @@ fun ProductDetailsScreen(
                         )
 
                         Button(
-                            onClick = { inCart = !inCart },
+                            onClick = {
+                                requireLogin(navController) {
+                                    cartViewModel.toggle(id)
+                                }
+                            },
                             modifier = Modifier.weight(4f)
                         ) {
-                            Icon(Icons.Default.ShoppingCart, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text(if (inCart) "In Cart" else "Add to Cart")
+                            Text(if (isInCart) "Remove from Cart" else "Add to Cart")
                         }
+
+
                     }
                 }
             }

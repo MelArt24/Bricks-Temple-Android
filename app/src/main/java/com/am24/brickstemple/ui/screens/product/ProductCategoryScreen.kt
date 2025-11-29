@@ -12,6 +12,7 @@ import androidx.navigation.NavController
 import com.am24.brickstemple.data.remote.dto.ProductDto
 import com.am24.brickstemple.ui.components.ProductItemCard
 import com.am24.brickstemple.ui.navigation.Screen
+import com.am24.brickstemple.ui.viewmodels.CartViewModel
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
 import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
 import com.am24.brickstemple.utils.PriceFormatter
@@ -23,6 +24,7 @@ fun ProductCategoryScreen(
     navController: NavController,
     productViewModel: ProductViewModel,
     wishlistViewModel: WishlistViewModel,
+    cartViewModel: CartViewModel,
     paddingValues: PaddingValues
 ) {
     if (category == null) {
@@ -48,6 +50,7 @@ fun ProductCategoryScreen(
 
     val wishlist = wishlistViewModel.wishlist.collectAsState().value
     val updating = wishlistViewModel.isUpdating.collectAsState().value
+    val cart = cartViewModel.cart.collectAsState().value
 
     when {
         state.isLoading && state.products.isEmpty() -> {
@@ -77,8 +80,10 @@ fun ProductCategoryScreen(
                 products = state.products,
                 navController = navController,
                 wishlist = wishlist.keys.toList(),
+                cart = cart,
                 updating = updating,
                 wishlistViewModel = wishlistViewModel,
+                cartViewModel = cartViewModel,
                 paddingValues = paddingValues
             )
         }
@@ -92,8 +97,10 @@ fun CategoryContent(
     products: List<ProductDto>,
     navController: NavController,
     wishlist: List<Int>,
+    cart: Map<Int, Int>,
     updating: Set<Int>,
     wishlistViewModel: WishlistViewModel,
+    cartViewModel: CartViewModel,
     paddingValues: PaddingValues
 ) {
     val wishlistLoaded = !wishlistViewModel.isLoading.collectAsState().value
@@ -121,12 +128,14 @@ fun CategoryContent(
                 price = PriceFormatter.format(p.price) + "₴",
                 imageUrl = p.image ?: "",
                 isFavorite = isFavorite == true,
-                inCart = false,
+                inCart = cart.containsKey(p.id),
                 onClick = {
                     navController.navigate(Screen.ProductDetails.pass(p.id))
                 },
                 onAddToCartClick = {
-                    // TODO cart later
+                    requireLogin(navController) {
+                        cartViewModel.toggle(p.id)
+                    }
                 },
                 onFavoriteClick = {
                     requireLogin(navController) {
