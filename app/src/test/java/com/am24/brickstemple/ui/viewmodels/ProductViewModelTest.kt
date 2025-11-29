@@ -2,6 +2,7 @@ package com.am24.brickstemple.ui.viewmodels
 
 import com.am24.brickstemple.data.fakes.FakeProductApiService
 import com.am24.brickstemple.data.fakes.FakeProductDao
+import com.am24.brickstemple.data.fakes.FakeProductRepository
 import com.am24.brickstemple.data.repositories.ProductRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -26,7 +27,7 @@ class ProductViewModelTest {
 
     @Before
     fun setup() {
-        val api = FakeProductApiService(HttpClient(MockEngine) {
+        api = FakeProductApiService(HttpClient(MockEngine) {
             engine {
                 addHandler { error("no calls should happen") }
             }
@@ -73,4 +74,38 @@ class ProductViewModelTest {
         val sets = vm.sets.value.products
         assertEquals(2, sets.count { it.type == "set" })
     }
+
+    @Test
+    fun `loadById success updates productById with product`() = runTest {
+        val repo = FakeProductRepository()
+        val vm = ProductViewModel(repo)
+
+        vm.loadById(1)
+        advanceUntilIdle()
+
+        val state = vm.productById.value
+
+        assertFalse(state.isLoading)
+        assertNotNull(state.products.firstOrNull())
+        assertEquals(1, state.products.first().id)
+        assertNull(state.error)
+    }
+
+    @Test
+    fun `loadById failure updates productById with error`() = runTest {
+        val repo = FakeProductRepository()
+        repo.shouldThrow = true
+
+        val vm = ProductViewModel(repo)
+
+        vm.loadById(1)
+        advanceUntilIdle()
+
+        val state = vm.productById.value
+
+        assertTrue(state.products.isEmpty())
+        assertNotNull(state.error)
+        assertFalse(state.isLoading)
+    }
+
 }
