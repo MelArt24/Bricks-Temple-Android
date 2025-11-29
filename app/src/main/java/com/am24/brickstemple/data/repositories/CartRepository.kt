@@ -34,10 +34,6 @@ open class CartRepository(
 
     private val pendingJobs = mutableMapOf<Int, Job>()
 
-
-    // -------------------------------------------------------------------
-    // FULL SERVER CHECKOUT
-    // -------------------------------------------------------------------
     open suspend fun checkout(): Int? = withContext(dispatcher) {
 
         val itemsDb = cartDao.getAll()
@@ -67,13 +63,6 @@ open class CartRepository(
         return@withContext response.id
     }
 
-
-
-
-
-    // -------------------------------------------------------------------
-    // LOCAL CART MANAGEMENT
-    // -------------------------------------------------------------------
     open suspend fun refresh() = withContext(dispatcher) {
         _isLoading.value = true
         try {
