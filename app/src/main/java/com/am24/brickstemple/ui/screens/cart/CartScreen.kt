@@ -180,7 +180,7 @@ private fun CartContent(
             subtotal = subtotal,
             delivery = 5.0,
             isCheckoutInProgress = checkoutInProgress,
-            onCheckoutClick = { viewModel.checkout(AuthSession.token) }
+            onCheckoutClick = { viewModel.checkout() }
         )
     }
 }

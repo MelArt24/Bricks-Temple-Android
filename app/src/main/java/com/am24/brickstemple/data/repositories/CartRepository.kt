@@ -102,7 +102,7 @@ open class CartRepository(
         pendingJobs[productId] = job
     }
 
-    private suspend fun performAdd(productId: Int) = withContext(dispatcher) {
+    suspend fun performAdd(productId: Int) = withContext(dispatcher) {
         withUpdatingFlag(productId) {
             val current = getCurrentItem(productId)
 

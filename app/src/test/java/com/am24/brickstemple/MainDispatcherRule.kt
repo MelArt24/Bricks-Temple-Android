@@ -1,4 +1,4 @@
-package com.am24.brickstemple.ui.viewmodels
+package com.am24.brickstemple
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.TestDispatcher

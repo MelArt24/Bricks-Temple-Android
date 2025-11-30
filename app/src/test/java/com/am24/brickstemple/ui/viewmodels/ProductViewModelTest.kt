@@ -1,5 +1,6 @@
 package com.am24.brickstemple.ui.viewmodels
 
+import com.am24.brickstemple.MainDispatcherRule
 import com.am24.brickstemple.data.fakes.FakeProductApiService
 import com.am24.brickstemple.data.fakes.FakeProductDao
 import com.am24.brickstemple.data.fakes.FakeProductRepository

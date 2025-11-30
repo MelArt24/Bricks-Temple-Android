@@ -42,6 +42,3 @@ fun ProductEntity.toDto() = ProductDto(
     keywords = keywords,
     isAvailable = isAvailable
 )
-
-val ProductDto.priceDouble: Double
-    get() = price.toDoubleOrNull() ?: 0.0

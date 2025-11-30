@@ -33,7 +33,7 @@ class CartViewModel(
         }
     }
 
-    fun checkout(token: String?) {
+    fun checkout() {
         viewModelScope.launch {
             _checkoutInProgress.value = true
 
