@@ -33,7 +33,7 @@ fun WishlistBottomBar(
                 modifier = Modifier.weight(1f),
                 enabled = enabled
             ) {
-                Text("Checkout")
+                Text("Add all to cart")
             }
 
             OutlinedButton(

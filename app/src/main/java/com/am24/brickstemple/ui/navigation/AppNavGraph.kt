@@ -60,7 +60,8 @@ fun AppNavGraph(
                 navController = navController,
                 wishlistViewModel = wishlistViewModel,
                 productDao = productViewModel.repo.productDao,
-                paddingValues = paddingValues
+                paddingValues = paddingValues,
+                cartViewModel = cartViewModel
             )
         }
 

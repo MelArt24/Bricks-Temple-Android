@@ -34,8 +34,10 @@ import com.am24.brickstemple.data.local.dao.ProductDao
 import com.am24.brickstemple.data.mappers.toDto
 import com.am24.brickstemple.ui.components.WishlistBottomBar
 import com.am24.brickstemple.ui.navigation.Screen
+import com.am24.brickstemple.ui.viewmodels.CartViewModel
 import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
 import com.am24.brickstemple.utils.PriceFormatter
+import com.am24.brickstemple.utils.requireLogin
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -43,13 +45,15 @@ fun WishlistScreen(
     navController: NavController,
     wishlistViewModel: WishlistViewModel,
     productDao: ProductDao,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    cartViewModel: CartViewModel
 ) {
     val wishlist = wishlistViewModel.wishlist.collectAsState().value
     val updating = wishlistViewModel.isUpdating.collectAsState().value
     val updatingQuantity = wishlistViewModel.updatingQuantity.collectAsState().value
     val isClearing = wishlistViewModel.isClearing.collectAsState().value
     val isLoading = wishlistViewModel.isLoading.collectAsState().value
+    val cart = cartViewModel.cart.collectAsState().value
 
     var products by remember { mutableStateOf(emptyList<com.am24.brickstemple.data.remote.dto.ProductDto>()) }
 
@@ -131,6 +135,8 @@ fun WishlistScreen(
                             val spinQty = updatingQuantity == p.id
                             val isUpdatingItem = p.id in updating
 
+                            val inCart = cart.containsKey(p.id)
+
                             WishlistItemRow(
                                 name = p.name,
                                 priceText = PriceFormatter.format(p.price) + "₴",
@@ -138,6 +144,7 @@ fun WishlistScreen(
                                 quantity = quantity,
                                 spinQuantity = spinQty,
                                 isUpdating = isUpdatingItem,
+                                inCart = inCart,
                                 onClick = {
                                     navController.navigate(Screen.ProductDetails.pass(p.id))
                                 },
@@ -152,7 +159,9 @@ fun WishlistScreen(
                                     wishlistViewModel.toggle(p.id)
                                 },
                                 onAddToCart = {
-                                    // TODO
+                                    requireLogin(navController) {
+                                        cartViewModel.toggle(p.id)
+                                    }
                                 }
                             )
                         }
@@ -160,7 +169,17 @@ fun WishlistScreen(
 
                     WishlistBottomBar(
                         onClear = { wishlistViewModel.clearWishlist() },
-                        onCheckout = { /* TODO */ },
+                        onCheckout = {
+                            requireLogin(navController) {
+                                products.forEach { product ->
+                                    if (!cart.containsKey(product.id)) {
+                                        cartViewModel.addProduct(product.id)
+                                    }
+                                }
+
+                                navController.navigate(Screen.Cart.route)
+                            }
+                        },
                         enabled = updating.isEmpty() && !refreshing && !isClearing
                     )
                 }
@@ -195,6 +214,7 @@ private fun WishlistItemRow(
     quantity: Int,
     spinQuantity: Boolean,
     isUpdating: Boolean,
+    inCart: Boolean,
     onClick: () -> Unit,
     onIncrease: () -> Unit,
     onDecrease: () -> Unit,
@@ -312,7 +332,8 @@ private fun WishlistItemRow(
                 ) {
                     Icon(
                         imageVector = Icons.Default.ShoppingCart,
-                        contentDescription = "Add to cart"
+                        contentDescription = "Add to cart",
+                        tint = if (inCart) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
