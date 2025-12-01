@@ -75,7 +75,7 @@ fun AppNavGraph(
 
         composable(Screen.OrderHistory.route) { OrderHistoryScreen() }
         composable(Screen.Settings.route) { SettingsScreen() }
-        composable(Screen.About.route) { AboutScreen() }
+        composable(Screen.About.route) { AboutScreen(paddingValues = paddingValues) }
 
         composable(Screen.Login.route) {
             LoginScreen(

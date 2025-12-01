@@ -38,7 +38,6 @@ fun ProductListScreen(
     val updating = wishlistViewModel.isUpdating.collectAsState().value
 
     val wishlistLoading = wishlistViewModel.isLoading.collectAsState().value
-    val productsLoading = productViewModel.loading.collectAsState().value
     val userIsLoggedIn = AuthSession.isLoggedIn()
 
     val cart = cartViewModel.cart.collectAsState().value

@@ -36,7 +36,7 @@ fun SplashScreen(navController: NavController) {
         contentAlignment = Alignment.Center
     ) {
         Image(
-            painter = painterResource(id = R.drawable.ic_launcher_foreground),
+            painter = painterResource(id = R.drawable.bricks_temple_transparent_logo),
             contentDescription = "Logo",
             modifier = Modifier.size(140.dp)
         )
