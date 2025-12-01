@@ -103,10 +103,13 @@ fun ProductListScreen(
     Box(Modifier.padding(paddingValues)) {
         LazyColumn(contentPadding = PaddingValues(16.dp)) {
             blocks.forEach { block ->
+                val latestItems = block.items
+                    .sortedByDescending { it.createdAt ?: "" }
+
                 item {
                     CategorySection(
                         title = block.title,
-                        items = block.items.map { mapDtoToDemo(it) }.take(5),
+                        items = latestItems.map { mapDtoToDemo(it) }.take(5),
                         onItemClick = {
                             navController.navigate(Screen.ProductDetails.pass(it.id))
                         },

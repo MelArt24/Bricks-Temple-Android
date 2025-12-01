@@ -72,12 +72,15 @@ fun ProductCategoryScreen(
         if (hasFilters) filteredState.products else state.products
 
     val productsToShow = remember(baseProducts, sortOrder) {
+
+        val newestFirst = baseProducts.sortedByDescending { it.createdAt ?: "" }
+
         when (sortOrder) {
-            SortOrder.PRICE_ASC -> baseProducts.sortedBy { it.price }
-            SortOrder.PRICE_DESC -> baseProducts.sortedByDescending { it.price }
-            SortOrder.YEAR_ASC -> baseProducts.sortedBy { it.year }
-            SortOrder.YEAR_DESC -> baseProducts.sortedByDescending { it.year }
-            else -> baseProducts
+            SortOrder.PRICE_ASC -> newestFirst.sortedBy { it.price }
+            SortOrder.PRICE_DESC -> newestFirst.sortedByDescending { it.price }
+            SortOrder.YEAR_ASC -> newestFirst.sortedBy { it.year }
+            SortOrder.YEAR_DESC -> newestFirst.sortedByDescending { it.year }
+            else -> newestFirst
         }
     }
 
