@@ -20,7 +20,7 @@ class FakeProductRepository : ProductRepository(
         name = "Falcon",
         category = "Star Wars",
         type = "set",
-        price = "799",
+        price = 799.00,
         year = "2023",
         image = "",
         description = ""

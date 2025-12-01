@@ -12,7 +12,7 @@ class FakeProductApiService(client: HttpClient) : ProductApiService(client) {
             name = "Millennium Falcon",
             category = "Star Wars",
             type = "set",
-            price = "799.99",
+            price = 799.99,
             year = "2023",
             image = "",
             description = ""
@@ -22,7 +22,7 @@ class FakeProductApiService(client: HttpClient) : ProductApiService(client) {
             name = "TIE Fighter Pilot",
             category = "Star Wars",
             type = "minifigure",
-            price = "19.99",
+            price = 19.99,
             year = "2020",
             image = "",
             description = ""
@@ -32,7 +32,7 @@ class FakeProductApiService(client: HttpClient) : ProductApiService(client) {
             name = "Police Station",
             category = "City",
             type = "set",
-            price = "199.99",
+            price = 199.99,
             year = "2021",
             image = "",
             description = ""
