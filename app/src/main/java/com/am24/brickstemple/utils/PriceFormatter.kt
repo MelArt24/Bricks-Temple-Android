@@ -4,18 +4,15 @@ import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 
-object PriceFormatter {
 
-    private val formatter = DecimalFormat("0.00").apply {
-        decimalFormatSymbols = DecimalFormatSymbols(Locale.US)
+object PriceFormatter {
+    private val symbols = DecimalFormatSymbols(Locale.US).apply {
+        decimalSeparator = '.'
     }
 
-    fun format(price: String): String {
-        return try {
-            val num = price.toDouble()
-            formatter.format(num)
-        } catch (e: Exception) {
-            price
-        }
+    private val formatter = DecimalFormat("0.00", symbols)
+
+    fun format(price: Double): String {
+        return formatter.format(price)
     }
 }

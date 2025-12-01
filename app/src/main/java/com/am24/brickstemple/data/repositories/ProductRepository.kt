@@ -11,7 +11,7 @@ import com.am24.brickstemple.data.mappers.toEntity
 import kotlinx.coroutines.delay
 
 open class ProductRepository(
-    private val api: ProductApiService,
+    val api: ProductApiService,
     private val dao: ProductDao,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {

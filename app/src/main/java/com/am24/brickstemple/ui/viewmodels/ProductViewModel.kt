@@ -14,6 +14,21 @@ data class ProductUiState(
     val error: String? = null
 )
 
+data class FilterState(
+    val minPrice: String? = null,
+    val maxPrice: String? = null,
+    val year: String? = null
+)
+
+enum class SortOrder {
+    PRICE_ASC,
+    PRICE_DESC,
+    YEAR_ASC,
+    YEAR_DESC,
+    NONE
+}
+
+
 class ProductViewModel(
     val repo: ProductRepository
 ) : ViewModel() {
@@ -38,6 +53,16 @@ class ProductViewModel(
 
     private val _loading = MutableStateFlow(true)
     val loading = _loading.asStateFlow()
+
+    private val _filters = MutableStateFlow(FilterState())
+    val filters = _filters.asStateFlow()
+
+    private val _filteredProducts = MutableStateFlow(ProductUiState())
+    val filteredProducts = _filteredProducts.asStateFlow()
+
+    private val _sortOrder = MutableStateFlow(SortOrder.NONE)
+    val sortOrder = _sortOrder.asStateFlow()
+
 
     init {
         viewModelScope.launch {
@@ -104,6 +129,73 @@ class ProductViewModel(
             }
         }
     }
+
+    private fun applySorting(list: List<ProductDto>, order: SortOrder): List<ProductDto> {
+        return when (order) {
+            SortOrder.PRICE_ASC -> list.sortedBy { it.price }
+            SortOrder.PRICE_DESC -> list.sortedByDescending { it.price }
+            SortOrder.YEAR_ASC -> list.sortedBy { it.year }
+            SortOrder.YEAR_DESC -> list.sortedByDescending { it.year }
+            SortOrder.NONE -> list
+        }
+    }
+
+    fun setSort(order: SortOrder) {
+        _sortOrder.value = order
+
+        val f = _filters.value
+        val type = fTypeFromFilters()
+
+        if (f.minPrice != null || f.maxPrice != null || f.year != null) {
+            applyFilters(type, f.minPrice, f.maxPrice, f.year)
+            return
+        }
+
+        val list = when (type) {
+            "set" -> sets.value.products
+            "minifigure" -> minifigs.value.products
+            "detail" -> details.value.products
+            "polybag" -> polybags.value.products
+            else -> others.value.products
+        }
+
+        val sorted = applySorting(list, order)
+        _filteredProducts.value = ProductUiState(products = sorted)
+    }
+
+    private fun fTypeFromFilters(): String {
+        return when (_filters.value) {
+            else -> ""
+        }
+    }
+
+    fun applyFilters(
+        type: String,
+        minPrice: String?,
+        maxPrice: String?,
+        year: String?
+    ) {
+        viewModelScope.launch {
+            _filteredProducts.value = ProductUiState(isLoading = true)
+
+            _filters.value = FilterState(minPrice, maxPrice, year)
+
+            try {
+                val result = repo.api.getFiltered(
+                    type = type,
+                    minPrice = minPrice,
+                    maxPrice = maxPrice,
+                    year = year
+                )
+                val sorted = applySorting(result, _sortOrder.value)
+
+                _filteredProducts.value = ProductUiState(products = sorted)
+            } catch (e: Exception) {
+                _filteredProducts.value = ProductUiState(error = e.message)
+            }
+        }
+    }
+
 
     class Factory(
         private val repo: ProductRepository

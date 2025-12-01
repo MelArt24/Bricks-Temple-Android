@@ -14,7 +14,7 @@ data class ProductDto(
     val year: String? = null,
     val size: String? = null,
     val condition: String? = null,
-    val price: String,
+    val price: Double,
     val createdAt: String? = null,
     val image: String? = null,
     val description: String? = null,

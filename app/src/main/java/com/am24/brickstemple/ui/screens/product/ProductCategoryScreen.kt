@@ -3,6 +3,9 @@ package com.am24.brickstemple.ui.screens.product
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,10 +17,12 @@ import com.am24.brickstemple.ui.components.ProductItemCard
 import com.am24.brickstemple.ui.navigation.Screen
 import com.am24.brickstemple.ui.viewmodels.CartViewModel
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
+import com.am24.brickstemple.ui.viewmodels.SortOrder
 import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
 import com.am24.brickstemple.utils.PriceFormatter
 import com.am24.brickstemple.utils.requireLogin
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductCategoryScreen(
     category: String?,
@@ -31,6 +36,9 @@ fun ProductCategoryScreen(
         Text("Invalid category", modifier = Modifier.padding(paddingValues))
         return
     }
+
+    var showFilters by remember { mutableStateOf(false) }
+    var showSort by remember { mutableStateOf(false) }
 
     val type = when (category) {
         "sets" -> "set"
@@ -48,44 +56,214 @@ fun ProductCategoryScreen(
         else -> productViewModel.others.collectAsState()
     }
 
+    val filters by productViewModel.filters.collectAsState()
+    val filteredState by productViewModel.filteredProducts.collectAsState()
+    val sortOrder by productViewModel.sortOrder.collectAsState()
+
+    val hasFilters = filters.minPrice != null ||
+            filters.maxPrice != null ||
+            filters.year != null
+
     val wishlist = wishlistViewModel.wishlist.collectAsState().value
     val updating = wishlistViewModel.isUpdating.collectAsState().value
     val cart = cartViewModel.cart.collectAsState().value
 
-    when {
-        state.isLoading && state.products.isEmpty() -> {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+    val baseProducts =
+        if (hasFilters) filteredState.products else state.products
+
+    val productsToShow = remember(baseProducts, sortOrder) {
+        when (sortOrder) {
+            SortOrder.PRICE_ASC -> baseProducts.sortedBy { it.price }
+            SortOrder.PRICE_DESC -> baseProducts.sortedByDescending { it.price }
+            SortOrder.YEAR_ASC -> baseProducts.sortedBy { it.year }
+            SortOrder.YEAR_DESC -> baseProducts.sortedByDescending { it.year }
+            else -> baseProducts
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+    ) {
+
+        TopAppBar(
+            title = { Text(category.uppercase()) },
+            actions = {
+                IconButton(onClick = { showSort = true }) {
+                    Icon(Icons.Default.Sort, "Sort")
+                }
+                IconButton(onClick = { showFilters = true }) {
+                    Icon(Icons.Default.FilterList, "Filters")
+                }
+            }
+        )
+
+        when {
+            (state.isLoading || filteredState.isLoading) && productsToShow.isEmpty() -> {
+                Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            (state.error != null || filteredState.error != null) && productsToShow.isEmpty() -> {
+                Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Error loading products")
+                }
+            }
+
+            else -> {
+                CategoryContent(
+                    products = productsToShow,
+                    navController = navController,
+                    wishlist = wishlist.keys.toList(),
+                    cart = cart,
+                    updating = updating,
+                    wishlistViewModel = wishlistViewModel,
+                    cartViewModel = cartViewModel
+                )
             }
         }
+    }
 
-        state.error != null && state.products.isEmpty() -> {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Error: ${state.error}")
+    if (showFilters) {
+        FilterBottomSheet(
+            type = type,
+            onApply = { min, max, year ->
+                productViewModel.applyFilters(type, min, max, year)
+                showFilters = false
+            },
+            onReset = {
+                productViewModel.applyFilters(type, null, null, null)
+                showFilters = false
+            },
+            onDismiss = { showFilters = false }
+        )
+    }
+
+    if (showSort) {
+        SortBottomSheet(
+            current = sortOrder,
+            onSelect = {
+                productViewModel.setSort(it)
+                showSort = false
+            },
+            onDismiss = { showSort = false }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SortBottomSheet(
+    current: SortOrder,
+    onSelect: (SortOrder) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+
+        Column(Modifier.padding(16.dp)) {
+
+            Text("Sort", style = MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.height(12.dp))
+
+            @Composable
+            fun sortButton(order: SortOrder, label: String) {
+                FilledTonalButton(
+                    onClick = { onSelect(order) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    colors = if (current == order)
+                        ButtonDefaults.filledTonalButtonColors(MaterialTheme.colorScheme.primaryContainer)
+                    else
+                        ButtonDefaults.filledTonalButtonColors()
+                ) {
+                    Text(label)
+                }
             }
-        }
 
-        else -> {
-            CategoryContent(
-                products = state.products,
-                navController = navController,
-                wishlist = wishlist.keys.toList(),
-                cart = cart,
-                updating = updating,
-                wishlistViewModel = wishlistViewModel,
-                cartViewModel = cartViewModel,
-                paddingValues = paddingValues
+            sortButton(SortOrder.PRICE_ASC, "Price ↑")
+            sortButton(SortOrder.PRICE_DESC, "Price ↓")
+            sortButton(SortOrder.YEAR_ASC, "Year ↑")
+            sortButton(SortOrder.YEAR_DESC, "Year ↓")
+            sortButton(SortOrder.NONE, "No sort")
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FilterBottomSheet(
+    type: String,
+    onApply: (String?, String?, String?) -> Unit,
+    onReset: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+
+        var minPrice by remember { mutableStateOf("") }
+        var maxPrice by remember { mutableStateOf("") }
+        var year by remember { mutableStateOf("") }
+
+        Column(Modifier.padding(16.dp)) {
+
+            Text("Filters", style = MaterialTheme.typography.headlineSmall)
+
+            Spacer(Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = minPrice,
+                onValueChange = { minPrice = it },
+                label = { Text("Min price") },
+                modifier = Modifier.fillMaxWidth()
             )
+
+            Spacer(Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = maxPrice,
+                onValueChange = { maxPrice = it },
+                label = { Text("Max price") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = year,
+                onValueChange = { year = it },
+                label = { Text("Year") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    onApply(
+                        minPrice.ifBlank { null },
+                        maxPrice.ifBlank { null },
+                        year.ifBlank { null }
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Apply filters") }
+
+            Spacer(Modifier.height(8.dp))
+
+            TextButton(
+                onClick = onReset,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Reset filters") }
+
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
@@ -101,15 +279,13 @@ fun CategoryContent(
     updating: Set<Int>,
     wishlistViewModel: WishlistViewModel,
     cartViewModel: CartViewModel,
-    paddingValues: PaddingValues
 ) {
     val wishlistLoaded = !wishlistViewModel.isLoading.collectAsState().value
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues),
+            .fillMaxSize(),
         contentPadding = PaddingValues(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)

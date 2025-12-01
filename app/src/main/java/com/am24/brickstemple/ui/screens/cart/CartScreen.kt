@@ -16,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.am24.brickstemple.auth.AuthSession
 import com.am24.brickstemple.data.local.dao.ProductDao
 import com.am24.brickstemple.data.mappers.toDto
 import com.am24.brickstemple.data.remote.dto.ProductDto
@@ -139,7 +138,7 @@ private fun CartContent(
 ) {
     val subtotal = products.sumOf { p ->
         val qty = cartMap[p.id] ?: 0
-        p.price.toDouble() * qty
+        p.price * qty
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -159,7 +158,7 @@ private fun CartContent(
                 CartItemRow(
                     name = p.name,
                     image = p.image ?: "",
-                    price = p.price.toDouble(),
+                    price = p.price,
                     quantity = quantity,
                     spin = spin,
                     updating = updating,
@@ -218,8 +217,8 @@ private fun CartItemRow(
 
             Column(Modifier.weight(1f)) {
                 Text(name, style = MaterialTheme.typography.titleMedium)
-                Text("Price: ${PriceFormatter.format(price.toString())}₴")
-                Text("Total: ${PriceFormatter.format((price * quantity).toString())}₴")
+                Text("Price: ${PriceFormatter.format(price)}₴")
+                Text("Total: ${PriceFormatter.format(price * quantity)}₴")
             }
 
             if (spin) {
@@ -267,15 +266,16 @@ private fun CartSummarySection(
     ) {
         Column(Modifier.padding(16.dp)) {
 
-            Text("Subtotal: ${PriceFormatter.format(subtotal.toString())}₴")
-            Text("Delivery: ${PriceFormatter.format(delivery.toString())}₴")
+            Text("Subtotal: ${PriceFormatter.format(subtotal)}₴")
+            Text("Delivery: ${PriceFormatter.format(delivery)}₴")
 
             Divider(Modifier.padding(vertical = 8.dp))
 
             Text(
-                "Total: ${PriceFormatter.format(total.toString())}₴",
+                "Total: ${PriceFormatter.format(total)}₴",
                 style = MaterialTheme.typography.titleMedium
             )
+
 
             Spacer(Modifier.height(8.dp))
 
