@@ -4,7 +4,9 @@ import com.am24.brickstemple.auth.AuthSession
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.DefaultRequest
+import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.observer.ResponseObserver
 import io.ktor.client.request.header
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -126,6 +128,14 @@ object KtorClientProvider {
                     header(HttpHeaders.Authorization, "Bearer $token")
                 }
                 header(HttpHeaders.ContentType, ContentType.Application.Json)
+            }
+
+            install(ResponseObserver) {
+                onResponse { response ->
+                    if (response.status.value == 401) {
+                        AuthSession.clear()
+                    }
+                }
             }
         }
     }
