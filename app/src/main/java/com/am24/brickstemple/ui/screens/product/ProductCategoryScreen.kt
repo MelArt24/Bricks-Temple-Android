@@ -3,9 +3,6 @@ package com.am24.brickstemple.ui.screens.product
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.am24.brickstemple.data.remote.dto.ProductDto
 import com.am24.brickstemple.ui.components.ProductItemCard
+import com.am24.brickstemple.ui.navigation.AppNavGraphCallbacks
 import com.am24.brickstemple.ui.navigation.Screen
 import com.am24.brickstemple.ui.viewmodels.CartViewModel
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
@@ -84,23 +82,17 @@ fun ProductCategoryScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        AppNavGraphCallbacks.openSort = { showSort = true }
+        AppNavGraphCallbacks.openFilters = { showFilters = true }
+    }
+
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
     ) {
-
-        TopAppBar(
-            title = { Text(category.uppercase()) },
-            actions = {
-                IconButton(onClick = { showSort = true }) {
-                    Icon(Icons.Default.Sort, "Sort")
-                }
-                IconButton(onClick = { showFilters = true }) {
-                    Icon(Icons.Default.FilterList, "Filters")
-                }
-            }
-        )
 
         when {
             (state.isLoading || filteredState.isLoading) && productsToShow.isEmpty() -> {

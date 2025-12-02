@@ -1,7 +1,11 @@
 package com.am24.brickstemple.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,6 +32,7 @@ import com.am24.brickstemple.ui.navigation.AppNavGraph
 import com.am24.brickstemple.ui.components.BottomBar
 import com.am24.brickstemple.ui.components.DrawerContent
 import com.am24.brickstemple.ui.components.TopBar
+import com.am24.brickstemple.ui.navigation.AppNavGraphCallbacks
 import com.am24.brickstemple.ui.navigation.Screen
 import com.am24.brickstemple.ui.navigation.shouldShowBackArrow
 import com.am24.brickstemple.ui.navigation.shouldShowBottomBar
@@ -148,6 +153,19 @@ fun App() {
             viewModel(factory = CartViewModel.Factory(cartRepository))
 
 
+        val isCategory = currentRoute?.startsWith(Screen.ProductCategory.route) == true
+
+        val topBarActions: @Composable RowScope.() -> Unit = if (isCategory) {
+            {
+                IconButton(onClick = { AppNavGraphCallbacks.openSort?.invoke() }) {
+                    Icon(Icons.Default.Sort, "Sort")
+                }
+                IconButton(onClick = { AppNavGraphCallbacks.openFilters?.invoke() }) {
+                    Icon(Icons.Default.FilterList, "Filters")
+                }
+            }
+        } else { {} }
+
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
@@ -177,9 +195,12 @@ fun App() {
                     if (shouldShowTopBar(currentRoute)) {
                         TopBar(
                             showMenu = !shouldShowBackArrow(currentRoute),
+                            enableSearch = isCategory,
+                            title = "",
                             onMenuClick = { scope.launch { drawerState.open() } },
                             onBackClick = { navController.popBackStack() },
-                            onSearchChange = { }
+                            onSearchChange = {},
+                            actions = topBarActions
                         )
                     }
                 },
@@ -196,7 +217,9 @@ fun App() {
                     productViewModel = productViewModel,
                     authViewModel = authViewModel,
                     wishlistViewModel = wishlistViewModel,
-                    cartViewModel = cartViewModel
+                    cartViewModel = cartViewModel,
+                    openSort = { AppNavGraphCallbacks.openSort?.invoke() },
+                    openFilters = { AppNavGraphCallbacks.openFilters?.invoke() }
                 )
             }
         }

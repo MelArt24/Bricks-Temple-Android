@@ -23,6 +23,11 @@ import com.am24.brickstemple.ui.viewmodels.CartViewModel
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
 import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
 
+object AppNavGraphCallbacks {
+    var openSort: () -> Unit = {}
+    var openFilters: () -> Unit = {}
+}
+
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
@@ -30,8 +35,11 @@ fun AppNavGraph(
     productViewModel: ProductViewModel,
     authViewModel: AuthViewModel,
     wishlistViewModel: WishlistViewModel,
-    cartViewModel: CartViewModel
-) {
+    cartViewModel: CartViewModel,
+    openSort: () -> Unit,
+    openFilters: () -> Unit,
+
+    ) {
     NavHost(
         navController = navController,
         startDestination = Screen.Splash.route

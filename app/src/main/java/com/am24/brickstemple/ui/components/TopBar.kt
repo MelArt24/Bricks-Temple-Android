@@ -23,11 +23,14 @@ import kotlinx.coroutines.delay
 fun TopBar(
     showMenu: Boolean,
     title: String = "",
+    enableSearch: Boolean = false,
+    searchText: String = "",
     onMenuClick: () -> Unit,
     onBackClick: () -> Unit,
-    onSearchChange: (String) -> Unit
+    onSearchChange: (String) -> Unit,
+    actions: @Composable RowScope.() -> Unit = {}
 ) {
-    var searchText by remember { mutableStateOf("") }
+    var internalSearchText by remember { mutableStateOf(searchText) }
 
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -37,25 +40,28 @@ fun TopBar(
 
         TopAppBar(
             title = {
-                TextField(
-                    value = searchText,
-                    onValueChange = {
-                        searchText = it
-                        onSearchChange(it)
-                    },
-                    placeholder = { Text("Search…") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent,
-                        cursorColor = MaterialTheme.colorScheme.primary
+                if (enableSearch) {
+                    TextField(
+                        value = internalSearchText,
+                        onValueChange = {
+                            internalSearchText = it
+                            onSearchChange(it)
+                        },
+                        placeholder = { Text("Search…") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                        )
                     )
-                )
+                } else {
+                    Text(title)
+                }
             },
             navigationIcon = {
                 if (showMenu) {
@@ -75,7 +81,8 @@ fun TopBar(
                         )
                     }
                 }
-            }
+            },
+            actions = actions
         )
     }
 }
