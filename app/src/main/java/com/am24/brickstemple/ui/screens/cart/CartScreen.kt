@@ -19,6 +19,7 @@ import coil.compose.AsyncImage
 import com.am24.brickstemple.data.local.dao.ProductDao
 import com.am24.brickstemple.data.mappers.toDto
 import com.am24.brickstemple.data.remote.dto.ProductDto
+import com.am24.brickstemple.ui.components.ScreenLoader
 import com.am24.brickstemple.ui.navigation.Screen
 import com.am24.brickstemple.ui.viewmodels.CartViewModel
 import com.am24.brickstemple.utils.PriceFormatter
@@ -93,14 +94,7 @@ fun CartScreen(
             }
 
             if (isClearing) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                ScreenLoader(isLoading)
             }
         }
     }

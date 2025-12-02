@@ -32,6 +32,7 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.am24.brickstemple.data.local.dao.ProductDao
 import com.am24.brickstemple.data.mappers.toDto
+import com.am24.brickstemple.ui.components.ScreenLoader
 import com.am24.brickstemple.ui.components.WishlistBottomBar
 import com.am24.brickstemple.ui.navigation.Screen
 import com.am24.brickstemple.ui.viewmodels.CartViewModel
@@ -193,14 +194,7 @@ fun WishlistScreen(
         )
 
         if (updating.isNotEmpty() || isClearing) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
+            ScreenLoader(isLoading)
         }
     }
 }
