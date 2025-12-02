@@ -43,12 +43,22 @@ fun CartScreen(
     var products by remember { mutableStateOf(emptyList<com.am24.brickstemple.data.remote.dto.ProductDto>()) }
     val productIds = cartMap.keys.toList()
 
+    val unauthorized by viewModel.unauthorized.collectAsState()
+
     LaunchedEffect(productIds) {
         products =
             if (productIds.isEmpty()) emptyList()
             else productDao.getByIds(productIds).map { it.toDto() }
     }
 
+    LaunchedEffect(unauthorized) {
+        if (unauthorized) {
+            navController.navigate(Screen.Login.route) {
+                popUpTo(Screen.Cart.route) { inclusive = true }
+            }
+            viewModel.clearUnauthorized()
+        }
+    }
 
     Column(
         modifier = Modifier

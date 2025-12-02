@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.am24.brickstemple.data.repositories.CartRepository
+import io.ktor.client.call.NoTransformationFoundException
+import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -27,10 +29,19 @@ class CartViewModel(
     private val _checkoutResult = MutableStateFlow<Int?>(null)
     val checkoutResult = _checkoutResult.asStateFlow()
 
+    private val _unauthorized = MutableStateFlow(false)
+    val unauthorized = _unauthorized.asStateFlow()
+
     init {
         viewModelScope.launch {
-            repo.refresh()
+            try {
+                repo.refresh()
+            } catch (_: Exception) { }
         }
+    }
+
+    fun clearUnauthorized() {
+        _unauthorized.value = false
     }
 
     fun checkout() {
@@ -40,6 +51,18 @@ class CartViewModel(
             try {
                 val orderId = repo.checkout()
                 _checkoutResult.value = orderId
+
+            } catch (e: ClientRequestException) {
+                if (e.response.status.value == 401) {
+                    _unauthorized.value = true
+                }
+
+            } catch (e: NoTransformationFoundException) {
+                _unauthorized.value = true
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+
             } finally {
                 _checkoutInProgress.value = false
             }

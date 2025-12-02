@@ -30,6 +30,8 @@ import okhttp3.Request
 import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
 import java.io.IOException
+import java.net.ConnectException
+import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.util.concurrent.TimeUnit
 
@@ -78,7 +80,9 @@ object KtorClientProvider {
 
         } catch (e: UnknownHostException) {
             handleNetworkError(chain, e)
-        } catch (e: IOException) {
+        } catch (e: SocketTimeoutException) {
+            throw e
+        } catch (e: ConnectException) {
             handleNetworkError(chain, e)
         }
     }
