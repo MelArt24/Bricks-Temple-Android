@@ -32,6 +32,10 @@ fun TopBar(
 ) {
     var internalSearchText by remember { mutableStateOf(searchText) }
 
+    LaunchedEffect(searchText) {
+        internalSearchText = searchText
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {

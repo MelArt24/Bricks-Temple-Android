@@ -63,6 +63,8 @@ class ProductViewModel(
     private val _sortOrder = MutableStateFlow(SortOrder.NONE)
     val sortOrder = _sortOrder.asStateFlow()
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -81,7 +83,20 @@ class ProductViewModel(
         }
     }
 
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
 
+    fun matchesQuery(product: ProductDto, query: String): Boolean {
+        if (query.isBlank()) return true
+
+        val q = query.lowercase()
+
+        return product.name.lowercase().contains(q)
+                || (product.description ?: "").lowercase().contains(q)
+                || (product.keywords ?: "").lowercase().contains(q)
+                || product.number?.contains(q) == true
+    }
 
     private suspend fun loadLocalCache() {
         _sets.value = ProductUiState(products = repo.getCachedByType("set"))

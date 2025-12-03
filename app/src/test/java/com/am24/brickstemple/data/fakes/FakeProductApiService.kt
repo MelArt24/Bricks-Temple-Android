@@ -11,6 +11,7 @@ class FakeProductApiService(client: HttpClient) : ProductApiService(client) {
             id = 1,
             name = "Millennium Falcon",
             category = "Star Wars",
+            number = "75192",
             type = "set",
             price = 799.99,
             year = "2023",

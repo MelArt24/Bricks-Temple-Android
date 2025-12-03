@@ -197,9 +197,10 @@ fun App() {
                             showMenu = !shouldShowBackArrow(currentRoute),
                             enableSearch = isCategory,
                             title = "",
+                            searchText = productViewModel.searchQuery.collectAsState().value,
                             onMenuClick = { scope.launch { drawerState.open() } },
                             onBackClick = { navController.popBackStack() },
-                            onSearchChange = {},
+                            onSearchChange = { productViewModel.setSearchQuery(it) },
                             actions = topBarActions
                         )
                     }

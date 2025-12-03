@@ -81,7 +81,7 @@ object KtorClientProvider {
         } catch (e: UnknownHostException) {
             handleNetworkError(chain, e)
         } catch (e: SocketTimeoutException) {
-            throw e
+            handleNetworkError(chain, e)
         } catch (e: ConnectException) {
             handleNetworkError(chain, e)
         }

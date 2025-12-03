@@ -69,16 +69,22 @@ fun ProductCategoryScreen(
     val baseProducts =
         if (hasFilters) filteredState.products else state.products
 
-    val productsToShow = remember(baseProducts, sortOrder) {
+    val searchQuery by productViewModel.searchQuery.collectAsState()
+
+    val productsToShow = remember(baseProducts, sortOrder, searchQuery) {
 
         val newestFirst = baseProducts.sortedByDescending { it.createdAt ?: "" }
 
-        when (sortOrder) {
+        val sorted = when (sortOrder) {
             SortOrder.PRICE_ASC -> newestFirst.sortedBy { it.price }
             SortOrder.PRICE_DESC -> newestFirst.sortedByDescending { it.price }
             SortOrder.YEAR_ASC -> newestFirst.sortedBy { it.year }
             SortOrder.YEAR_DESC -> newestFirst.sortedByDescending { it.year }
             else -> newestFirst
+        }
+
+        sorted.filter { product ->
+            productViewModel.matchesQuery(product, searchQuery)
         }
     }
 
@@ -86,7 +92,6 @@ fun ProductCategoryScreen(
         AppNavGraphCallbacks.openSort = { showSort = true }
         AppNavGraphCallbacks.openFilters = { showFilters = true }
     }
-
 
     Column(
         modifier = Modifier

@@ -109,4 +109,66 @@ class ProductViewModelTest {
         assertFalse(state.isLoading)
     }
 
+    @Test
+    fun `setSearchQuery updates searchQuery flow`() = runTest {
+        assertEquals("", vm.searchQuery.value)
+
+        vm.setSearchQuery("ninja")
+        assertEquals("ninja", vm.searchQuery.value)
+
+        vm.setSearchQuery("star wars")
+        assertEquals("star wars", vm.searchQuery.value)
+    }
+
+    @Test
+    fun `matchesQuery finds product by name`() = runTest {
+        advanceUntilIdle()
+
+        val falcon = vm.sets.value.products.first { it.id == 1 }
+
+        assertTrue(vm.matchesQuery(falcon, "falcon"))
+        assertTrue(vm.matchesQuery(falcon, "MILLENNIUM"))
+        assertTrue(vm.matchesQuery(falcon, "millennium falcon"))
+    }
+
+    @Test
+    fun `matchesQuery finds product by partial name`() = runTest {
+        advanceUntilIdle()
+
+        val police = vm.sets.value.products.first { it.id == 3 }
+
+        assertTrue(vm.matchesQuery(police, "pol"))
+        assertTrue(vm.matchesQuery(police, "station"))
+        assertTrue(vm.matchesQuery(police, "lice"))
+    }
+
+    @Test
+    fun `matchesQuery returns false for unrelated query`() = runTest {
+        advanceUntilIdle()
+
+        val falcon = vm.sets.value.products.first { it.id == 1 }
+
+        assertFalse(vm.matchesQuery(falcon, "technic"))
+        assertFalse(vm.matchesQuery(falcon, "creator"))
+        assertFalse(vm.matchesQuery(falcon, "bionicle"))
+    }
+
+    @Test
+    fun `matchesQuery returns true for blank query`() = runTest {
+        advanceUntilIdle()
+
+        val pilot = vm.minifigs.value.products.first { it.id == 2 }
+
+        assertTrue(vm.matchesQuery(pilot, ""))
+        assertTrue(vm.matchesQuery(pilot, "   "))
+    }
+
+    @Test
+    fun `matchesQuery finds product by number`() = runTest {
+        advanceUntilIdle()
+
+        val falcon = vm.sets.value.products.first { it.id == 1 }
+
+        assertTrue(vm.matchesQuery(falcon, "75192"))
+    }
 }
