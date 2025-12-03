@@ -26,6 +26,7 @@ import com.am24.brickstemple.data.remote.OrderApiService
 import com.am24.brickstemple.data.remote.ProductApiService
 import com.am24.brickstemple.data.remote.WishlistApiService
 import com.am24.brickstemple.data.repositories.CartRepository
+import com.am24.brickstemple.data.repositories.OrderRepository
 import com.am24.brickstemple.data.repositories.ProductRepository
 import com.am24.brickstemple.data.repositories.WishlistRepository
 import com.am24.brickstemple.ui.navigation.AppNavGraph
@@ -40,6 +41,7 @@ import com.am24.brickstemple.ui.navigation.shouldShowTopBar
 import com.am24.brickstemple.ui.theme.BricksTempleTheme
 import com.am24.brickstemple.ui.viewmodels.AuthViewModel
 import com.am24.brickstemple.ui.viewmodels.CartViewModel
+import com.am24.brickstemple.ui.viewmodels.OrderViewModel
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
 import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
 import kotlinx.coroutines.delay
@@ -148,10 +150,17 @@ fun App() {
             )
         }
 
+        val orderRepository = remember {
+            OrderRepository(
+                api = orderApi
+            )
+        }
 
         val cartViewModel: CartViewModel =
             viewModel(factory = CartViewModel.Factory(cartRepository))
 
+        val orderViewModel: OrderViewModel =
+            viewModel(factory = OrderViewModel.Factory(orderRepository))
 
         val isCategory = currentRoute?.startsWith(Screen.ProductCategory.route) == true
 
@@ -219,6 +228,7 @@ fun App() {
                     authViewModel = authViewModel,
                     wishlistViewModel = wishlistViewModel,
                     cartViewModel = cartViewModel,
+                    orderViewModel = orderViewModel,
                     openSort = { AppNavGraphCallbacks.openSort?.invoke() },
                     openFilters = { AppNavGraphCallbacks.openFilters?.invoke() }
                 )

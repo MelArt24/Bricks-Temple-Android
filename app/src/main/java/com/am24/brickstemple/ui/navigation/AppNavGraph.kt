@@ -10,7 +10,7 @@ import com.am24.brickstemple.ui.screens.cart.CartScreen
 import com.am24.brickstemple.ui.screens.auth.LoginScreen
 import com.am24.brickstemple.ui.screens.auth.RegisterScreen
 import com.am24.brickstemple.ui.screens.orders.OrderHistoryScreen
-import com.am24.brickstemple.ui.screens.orders.ViewDetailsScreen
+import com.am24.brickstemple.ui.screens.orders.OrderDetailsScreen
 import com.am24.brickstemple.ui.screens.product.ProductCategoryScreen
 import com.am24.brickstemple.ui.screens.product.ProductDetailsScreen
 import com.am24.brickstemple.ui.screens.product.ProductListScreen
@@ -20,6 +20,7 @@ import com.am24.brickstemple.ui.screens.settings.SettingsScreen
 import com.am24.brickstemple.ui.screens.splash.SplashScreen
 import com.am24.brickstemple.ui.viewmodels.AuthViewModel
 import com.am24.brickstemple.ui.viewmodels.CartViewModel
+import com.am24.brickstemple.ui.viewmodels.OrderViewModel
 import com.am24.brickstemple.ui.viewmodels.ProductViewModel
 import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
 
@@ -36,6 +37,7 @@ fun AppNavGraph(
     authViewModel: AuthViewModel,
     wishlistViewModel: WishlistViewModel,
     cartViewModel: CartViewModel,
+    orderViewModel: OrderViewModel,
     openSort: () -> Unit,
     openFilters: () -> Unit,
 
@@ -81,7 +83,14 @@ fun AppNavGraph(
             )
         }
 
-        composable(Screen.OrderHistory.route) { OrderHistoryScreen() }
+        composable(Screen.OrderHistory.route) {
+            OrderHistoryScreen(
+                navController = navController,
+                viewModel = orderViewModel,
+                paddingValues = paddingValues
+            )
+        }
+
         composable(Screen.Settings.route) { SettingsScreen() }
         composable(Screen.About.route) { AboutScreen(paddingValues = paddingValues) }
 
@@ -123,7 +132,12 @@ fun AppNavGraph(
 
         composable(Screen.ViewDetails.route) { backStack ->
             val id = backStack.arguments?.getString("id")?.toInt()
-            ViewDetailsScreen(id)
+            OrderDetailsScreen(
+                orderId = id,
+                viewModel = orderViewModel,
+                productViewModel = productViewModel,
+                paddingValues = paddingValues
+            )
         }
 
         composable(Screen.Splash.route) {
