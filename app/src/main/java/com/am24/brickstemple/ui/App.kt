@@ -18,6 +18,7 @@ import androidx.room.Room
 import com.am24.brickstemple.auth.AuthSession
 import com.am24.brickstemple.auth.AuthStorage
 import com.am24.brickstemple.auth.LogoutManager
+import com.am24.brickstemple.data.local.ThemePreferenceDataStore
 import com.am24.brickstemple.data.local.db.AppDatabase
 import com.am24.brickstemple.data.remote.KtorClientProvider
 import com.am24.brickstemple.data.remote.NetworkObserver
@@ -50,7 +51,12 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
-    BricksTempleTheme {
+    val context = LocalContext.current
+
+    val themeStore = remember { ThemePreferenceDataStore(context) }
+    val isDarkTheme by themeStore.isDarkMode.collectAsState(initial = false)
+
+    BricksTempleTheme(darkTheme = isDarkTheme) {
         val context = LocalContext.current
 
         LaunchedEffect(Unit) {

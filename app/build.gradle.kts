@@ -125,6 +125,8 @@ dependencies {
 
     implementation("com.google.accompanist:accompanist-placeholder-material:0.34.0")
 
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+
     testImplementation("io.ktor:ktor-client-mock:2.3.9")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation(libs.junit)

@@ -91,7 +91,12 @@ fun AppNavGraph(
             )
         }
 
-        composable(Screen.Settings.route) { SettingsScreen() }
+        composable(Screen.Settings.route) {
+            SettingsScreen(
+                paddingValues = paddingValues,
+                navController = navController
+            )
+        }
         composable(Screen.About.route) { AboutScreen(paddingValues = paddingValues) }
 
         composable(Screen.Login.route) {
