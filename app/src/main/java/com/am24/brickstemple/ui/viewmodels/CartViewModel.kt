@@ -55,10 +55,10 @@ class CartViewModel(
             } catch (e: ClientRequestException) {
                 if (e.response.status.value == 401) {
                     _unauthorized.value = true
+                } else {
+                    e.printStackTrace()
                 }
 
-            } catch (e: NoTransformationFoundException) {
-                _unauthorized.value = true
 
             } catch (e: Exception) {
                 e.printStackTrace()

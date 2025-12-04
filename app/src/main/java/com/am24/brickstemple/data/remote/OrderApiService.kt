@@ -8,6 +8,10 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.statement.bodyAsText
+import java.io.IOException
+
 
 class OrderApiService(
     private val client: HttpClient
@@ -83,6 +87,15 @@ class OrderApiService(
         val response = client.post(BASE_URL) {
             contentType(ContentType.Application.Json)
             setBody(CreateOrderRequest(items, totalPrice))
+        }
+
+        if (response.status.value == 499) {
+            throw IOException("Offline")
+        }
+
+        if (response.status.value !in 200..299) {
+            val body = response.bodyAsText()
+            throw ClientRequestException(response, "Checkout failed: ${response.status} $body")
         }
 
         return response.body()
