@@ -1,5 +1,6 @@
 package com.am24.brickstemple.domain.repositories
 
+import com.am24.brickstemple.data.remote.auth.UpdateUserRequest
 import com.am24.brickstemple.data.remote.auth.UserMeResponse
 
 interface AuthRepository {
@@ -15,4 +16,7 @@ interface AuthRepository {
     suspend fun logout()
 
     suspend fun getCurrentUser(): UserMeResponse
+
+    suspend fun updateUser(id: Int, req: UpdateUserRequest)
+
 }

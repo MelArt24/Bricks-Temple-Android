@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.am24.brickstemple.auth.AuthSession
 import com.am24.brickstemple.data.remote.KtorClientProvider
+import com.am24.brickstemple.data.remote.auth.UpdateUserRequest
 import com.am24.brickstemple.data.repositories.AuthRepositoryImpl
 import com.am24.brickstemple.domain.repositories.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -161,6 +162,7 @@ class AuthViewModel(
 
                 AuthSession.updateUsername(me.username)
                 AuthSession.updateEmail(me.email)
+                AuthSession.updateUserId(me.id)
 
                 _uiState.update {
                     it.copy(
@@ -196,6 +198,33 @@ class AuthViewModel(
         _loginState.value = AuthFormState()
         _registerState.value = AuthFormState()
     }
+
+    fun changePassword(newPassword: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+
+            val userId = AuthSession.userId ?: return@launch onError("Not logged in")
+            val username = AuthSession.username ?: return@launch onError("Missing username")
+            val email = AuthSession.email ?: return@launch onError("Missing email")
+
+            try {
+                authRepository.updateUser(
+                    userId,
+                    UpdateUserRequest(
+                        username = username,
+                        email = email,
+                        password = newPassword
+                    )
+                )
+
+                onSuccess()
+
+            } catch (e: Exception) {
+                onError(e.message ?: "Failed to update password")
+            }
+        }
+    }
+
+
 
 
 

@@ -7,11 +7,13 @@ import com.am24.brickstemple.data.remote.auth.AuthLoginResponse
 import com.am24.brickstemple.data.remote.auth.AuthRegisterResponse
 import com.am24.brickstemple.data.remote.auth.LoginRequest
 import com.am24.brickstemple.data.remote.auth.RegisterRequest
+import com.am24.brickstemple.data.remote.auth.UpdateUserRequest
 import com.am24.brickstemple.data.remote.auth.UserMeResponse
 import com.am24.brickstemple.domain.repositories.AuthRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -48,6 +50,7 @@ class AuthRepositoryImpl(
 
         val user = getCurrentUser()
         AuthSession.updateUsername(user.username)
+        AuthSession.updateUserId(user.id)
 
         appContext?.let {
             AuthStorage.save(it, data.token, email, user.username)
@@ -115,5 +118,17 @@ class AuthRepositoryImpl(
         val body = response.bodyAsText()
         return Json.decodeFromString<UserMeResponse>(body)
     }
+
+    override suspend fun updateUser(id: Int, req: UpdateUserRequest) {
+        val response: HttpResponse = client.put("https://bricks-temple-server.onrender.com/users/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(req)
+        }
+
+        if (!response.status.isSuccess()) {
+            throw Exception(parseError(response))
+        }
+    }
+
 
 }

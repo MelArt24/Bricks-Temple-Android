@@ -16,6 +16,7 @@ import com.am24.brickstemple.ui.screens.product.ProductDetailsScreen
 import com.am24.brickstemple.ui.screens.product.ProductListScreen
 import com.am24.brickstemple.ui.screens.wishlist.WishlistScreen
 import com.am24.brickstemple.ui.screens.profile.ProfileScreen
+import com.am24.brickstemple.ui.screens.settings.ChangePasswordScreen
 import com.am24.brickstemple.ui.screens.settings.SettingsScreen
 import com.am24.brickstemple.ui.screens.splash.SplashScreen
 import com.am24.brickstemple.ui.viewmodels.AuthViewModel
@@ -149,6 +150,13 @@ fun AppNavGraph(
             SplashScreen(navController)
         }
 
+        composable(Screen.ChangePassword.route) {
+            ChangePasswordScreen(
+                navController = navController,
+                viewModel = authViewModel,
+                paddingValues = paddingValues
+            )
+        }
 
     }
 }

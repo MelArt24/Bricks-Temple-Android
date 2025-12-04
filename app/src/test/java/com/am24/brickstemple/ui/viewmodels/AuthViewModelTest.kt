@@ -1,5 +1,6 @@
 package com.am24.brickstemple.ui.viewmodels
 
+import com.am24.brickstemple.data.remote.auth.UpdateUserRequest
 import com.am24.brickstemple.data.remote.auth.UserMeResponse
 import com.am24.brickstemple.domain.repositories.AuthRepository
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +33,13 @@ class FakeAuthRepository : AuthRepository {
             email = "a@mail.com",
             message = null
         )
+
+    override suspend fun updateUser(
+        id: Int,
+        req: UpdateUserRequest
+    ) {
+        TODO("Not yet implemented")
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

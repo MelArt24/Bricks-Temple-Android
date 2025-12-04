@@ -114,6 +114,17 @@ fun LoginScreen(
                 ) {
                     Text("No account? Register")
                 }
+
+                TextButton(
+                    onClick = {
+                        navController.navigate(Screen.ProductList.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    }
+                ) {
+                    Text("Continue as Guest")
+                }
+
             }
         }
     }

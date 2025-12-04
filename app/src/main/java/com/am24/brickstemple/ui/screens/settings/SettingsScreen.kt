@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.am24.brickstemple.data.local.ThemePreferenceDataStore
+import com.am24.brickstemple.ui.navigation.Screen
 import kotlinx.coroutines.launch
 
 @Composable
@@ -42,8 +43,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-//                    navController?.navigate(Screen.ChangePassword.route)
-                    // TODO: Add navigation to change password screen
+                    navController?.navigate(Screen.ChangePassword.route)
                 },
             shape = RoundedCornerShape(12.dp)
         ) {

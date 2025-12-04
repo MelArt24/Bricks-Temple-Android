@@ -19,15 +19,20 @@ fun SplashScreen(navController: NavController) {
     LaunchedEffect(Unit) {
         delay(1200)
 
-        if (AuthSession.isLoggedIn()) {
-            navController.navigate(Screen.ProductList.route) {
-                popUpTo(0)
-            }
-        } else {
-            navController.navigate(Screen.Login.route) {
-                popUpTo(0)
-            }
+//        if (AuthSession.isLoggedIn()) {
+//            navController.navigate(Screen.ProductList.route) {
+//                popUpTo(0)
+//            }
+//        } else {
+//            navController.navigate(Screen.Login.route) {
+//                popUpTo(0)
+//            }
+//        }
+
+        navController.navigate(Screen.ProductList.route) {
+            popUpTo(Screen.Splash.route) { inclusive = true }
         }
+
     }
 
     Box(

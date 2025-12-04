@@ -9,13 +9,19 @@ object AuthSession {
     private var _token by mutableStateOf<String?>(null)
     private var _email by mutableStateOf<String?>(null)
     private var _username by mutableStateOf<String?>(null)
+    private var _userId by mutableStateOf<Int?>(null)
 
+    val userId: Int? get() = _userId
     val token: String? get() = _token
     val email: String? get() = _email
     val username: String? get() = _username
 
     var isLoaded by mutableStateOf(false)
         private set
+
+    fun updateUserId(value: Int?) {
+        _userId = value
+    }
 
     fun updateToken(value: String?) {
         _token = value
