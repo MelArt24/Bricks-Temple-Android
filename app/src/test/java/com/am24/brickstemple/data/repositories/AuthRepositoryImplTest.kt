@@ -3,6 +3,7 @@ package com.am24.brickstemple.data.repositories
 import android.content.Context
 import com.am24.brickstemple.auth.AuthSession
 import com.am24.brickstemple.data.remote.auth.AuthRegisterResponse
+import com.am24.brickstemple.data.remote.auth.UpdateUserRequest
 import com.am24.brickstemple.data.remote.auth.UserMeResponse
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
@@ -227,5 +228,52 @@ class AuthRepositoryImplTest {
         assertEquals(null, AuthSession.email)
         assertEquals(null, AuthSession.username)
     }
+
+    @Test
+    fun `updateUser success should complete without error`() = runTest {
+        val mockJson = """{"message":"User updated successfully"}"""
+
+        val client = mockClient(
+            HttpStatusCode.OK,
+            mockJson
+        )
+
+        val repo = AuthRepositoryImpl(client, mockContext())
+
+        repo.updateUser(
+            id = 10,
+            req = UpdateUserRequest(
+                username = "NewName",
+                email = "new@mail.com",
+                password = "123456"
+            )
+        )
+    }
+
+
+    @Test
+    fun `updateUser error should throw exception`() = runTest {
+        val client = mockClient(
+            HttpStatusCode.BadRequest,
+            """{"error":"Invalid data"}"""
+        )
+
+        val repo = AuthRepositoryImpl(client, mockContext())
+
+        try {
+            repo.updateUser(
+                id = 10,
+                req = UpdateUserRequest(
+                    username = "Name",
+                    email = "email@mail.com",
+                    password = "pass"
+                )
+            )
+            fail("Exception expected")
+        } catch (e: Exception) {
+            assertEquals("Invalid data", e.message)
+        }
+    }
+
 
 }
