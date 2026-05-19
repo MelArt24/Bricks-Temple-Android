@@ -1,17 +1,31 @@
 package com.am24.brickstemple.data.fakes
 
-import com.am24.brickstemple.data.mappers.toEntity
+import com.am24.brickstemple.data.mapper.toEntity
 import com.am24.brickstemple.data.remote.ProductApiService
+import com.am24.brickstemple.data.local.dao.ProductDao
 import com.am24.brickstemple.data.remote.dto.ProductDto
-import com.am24.brickstemple.data.repositories.ProductRepository
+import com.am24.brickstemple.domain.repository.ProductRepository
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.Dispatchers
 
-class FakeProductRepository : ProductRepository(
-    api = FakeApiService(),
-    dao = FakeProductDao(),
-    dispatcher = Dispatchers.Unconfined
-) {
+class FakeProductRepository : ProductRepository {
+    override val productDao: ProductDao
+        get() = FakeProductDao()
+
+    override suspend fun getCachedByType(type: String): List<ProductDto> = emptyList()
+    override suspend fun searchLocal(query: String): List<ProductDto> = emptyList()
+    override suspend fun getLocalById(id: Int): ProductDto? = null
+    override suspend fun refreshAllTypesParallel(): List<ProductDto> = emptyList()
+    override suspend fun syncByType(type: String): List<ProductDto> = emptyList()
+
+    override suspend fun getFiltered(
+        type: String?,
+        category: String?,
+        search: String?,
+        minPrice: String?,
+        maxPrice: String?,
+        year: String?
+    ): List<ProductDto> = emptyList()
 
     var shouldThrow = false
 
@@ -28,8 +42,6 @@ class FakeProductRepository : ProductRepository(
 
     override suspend fun getById(id: Int): ProductDto {
         if (shouldThrow) throw RuntimeException("Error loading")
-
-        productDao.insert(product.toEntity())
 
         return product
     }

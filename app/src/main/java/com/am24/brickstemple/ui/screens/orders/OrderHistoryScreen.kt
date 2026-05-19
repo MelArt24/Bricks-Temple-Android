@@ -15,7 +15,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.am24.brickstemple.data.remote.OrderApiService
 import com.am24.brickstemple.ui.navigation.Screen
-import com.am24.brickstemple.ui.viewmodels.OrderViewModel
 import com.am24.brickstemple.utils.DateFormatter
 import com.am24.brickstemple.utils.PriceFormatter
 

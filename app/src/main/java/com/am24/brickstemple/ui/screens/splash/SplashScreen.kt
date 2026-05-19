@@ -9,7 +9,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.am24.brickstemple.R
-import com.am24.brickstemple.auth.AuthSession
 import kotlinx.coroutines.delay
 import com.am24.brickstemple.ui.navigation.Screen
 

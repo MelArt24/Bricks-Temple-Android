@@ -13,10 +13,8 @@ import com.am24.brickstemple.data.remote.dto.ProductDto
 import com.am24.brickstemple.ui.components.ProductItemCard
 import com.am24.brickstemple.ui.navigation.AppNavGraphCallbacks
 import com.am24.brickstemple.ui.navigation.Screen
-import com.am24.brickstemple.ui.viewmodels.CartViewModel
-import com.am24.brickstemple.ui.viewmodels.ProductViewModel
-import com.am24.brickstemple.ui.viewmodels.SortOrder
-import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
+import com.am24.brickstemple.ui.screens.cart.CartViewModel
+import com.am24.brickstemple.ui.screens.wishlist.WishlistViewModel
 import com.am24.brickstemple.utils.PriceFormatter
 import com.am24.brickstemple.utils.requireLogin
 

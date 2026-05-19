@@ -12,13 +12,12 @@ import com.am24.brickstemple.data.remote.dto.ProductDto
 import com.am24.brickstemple.ui.components.CategorySection
 import com.am24.brickstemple.ui.components.ProductDemo
 import com.am24.brickstemple.ui.navigation.Screen
-import com.am24.brickstemple.ui.viewmodels.ProductViewModel
-import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
+import com.am24.brickstemple.ui.screens.wishlist.WishlistViewModel
 import com.am24.brickstemple.utils.PriceFormatter
 import com.am24.brickstemple.utils.requireLogin
 import androidx.compose.foundation.layout.Box
-import com.am24.brickstemple.auth.AuthSession
-import com.am24.brickstemple.ui.viewmodels.CartViewModel
+import com.am24.brickstemple.data.auth.AuthSession
+import com.am24.brickstemple.ui.screens.cart.CartViewModel
 
 @Composable
 fun ProductListScreen(

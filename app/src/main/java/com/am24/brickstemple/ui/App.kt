@@ -15,9 +15,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.room.Room
-import com.am24.brickstemple.auth.AuthSession
-import com.am24.brickstemple.auth.AuthStorage
-import com.am24.brickstemple.auth.LogoutManager
+import com.am24.brickstemple.data.auth.AuthSession
+import com.am24.brickstemple.data.auth.AuthStorage
+import com.am24.brickstemple.ui.screens.auth.LogoutManager
 import com.am24.brickstemple.data.local.ThemePreferenceDataStore
 import com.am24.brickstemple.data.local.db.AppDatabase
 import com.am24.brickstemple.data.remote.KtorClientProvider
@@ -26,10 +26,10 @@ import com.am24.brickstemple.data.remote.NetworkStatus
 import com.am24.brickstemple.data.remote.OrderApiService
 import com.am24.brickstemple.data.remote.ProductApiService
 import com.am24.brickstemple.data.remote.WishlistApiService
-import com.am24.brickstemple.data.repositories.CartRepository
-import com.am24.brickstemple.data.repositories.OrderRepository
-import com.am24.brickstemple.data.repositories.ProductRepository
-import com.am24.brickstemple.data.repositories.WishlistRepository
+import com.am24.brickstemple.data.repository.CartRepositoryImpl
+import com.am24.brickstemple.data.repository.OrderRepositoryImpl
+import com.am24.brickstemple.data.repository.ProductRepositoryImpl
+import com.am24.brickstemple.data.repository.WishlistRepositoryImpl
 import com.am24.brickstemple.ui.navigation.AppNavGraph
 import com.am24.brickstemple.ui.components.BottomBar
 import com.am24.brickstemple.ui.components.DrawerContent
@@ -40,11 +40,11 @@ import com.am24.brickstemple.ui.navigation.shouldShowBackArrow
 import com.am24.brickstemple.ui.navigation.shouldShowBottomBar
 import com.am24.brickstemple.ui.navigation.shouldShowTopBar
 import com.am24.brickstemple.ui.theme.BricksTempleTheme
-import com.am24.brickstemple.ui.viewmodels.AuthViewModel
-import com.am24.brickstemple.ui.viewmodels.CartViewModel
-import com.am24.brickstemple.ui.viewmodels.OrderViewModel
-import com.am24.brickstemple.ui.viewmodels.ProductViewModel
-import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
+import com.am24.brickstemple.ui.screens.auth.AuthViewModel
+import com.am24.brickstemple.ui.screens.cart.CartViewModel
+import com.am24.brickstemple.ui.screens.orders.OrderViewModel
+import com.am24.brickstemple.ui.screens.product.ProductViewModel
+import com.am24.brickstemple.ui.screens.wishlist.WishlistViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -108,14 +108,14 @@ fun App() {
         }
 
         val productRepository = remember {
-            ProductRepository(
+            ProductRepositoryImpl(
                 api = ProductApiService(KtorClientProvider.client),
                 dao = productDao
             )
         }
 
         val wishlistRepository = remember {
-            WishlistRepository(WishlistApiService(KtorClientProvider.client))
+            WishlistRepositoryImpl(WishlistApiService(KtorClientProvider.client))
         }
 
         val wishlistViewModel: WishlistViewModel =
@@ -149,7 +149,7 @@ fun App() {
         }
 
         val cartRepository = remember {
-            CartRepository(
+            CartRepositoryImpl(
                 cartDao = cartDao,
                 productDao = productDao,
                 orderApi = orderApi
@@ -157,7 +157,7 @@ fun App() {
         }
 
         val orderRepository = remember {
-            OrderRepository(
+            OrderRepositoryImpl(
                 api = orderApi
             )
         }

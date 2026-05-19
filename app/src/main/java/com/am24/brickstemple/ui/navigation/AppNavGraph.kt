@@ -19,11 +19,11 @@ import com.am24.brickstemple.ui.screens.profile.ProfileScreen
 import com.am24.brickstemple.ui.screens.settings.ChangePasswordScreen
 import com.am24.brickstemple.ui.screens.settings.SettingsScreen
 import com.am24.brickstemple.ui.screens.splash.SplashScreen
-import com.am24.brickstemple.ui.viewmodels.AuthViewModel
-import com.am24.brickstemple.ui.viewmodels.CartViewModel
-import com.am24.brickstemple.ui.viewmodels.OrderViewModel
-import com.am24.brickstemple.ui.viewmodels.ProductViewModel
-import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
+import com.am24.brickstemple.ui.screens.auth.AuthViewModel
+import com.am24.brickstemple.ui.screens.cart.CartViewModel
+import com.am24.brickstemple.ui.screens.orders.OrderViewModel
+import com.am24.brickstemple.ui.screens.product.ProductViewModel
+import com.am24.brickstemple.ui.screens.wishlist.WishlistViewModel
 
 object AppNavGraphCallbacks {
     var openSort: () -> Unit = {}

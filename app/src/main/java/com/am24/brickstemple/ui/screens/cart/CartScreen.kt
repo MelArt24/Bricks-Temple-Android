@@ -1,6 +1,5 @@
 package com.am24.brickstemple.ui.screens.cart
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,11 +16,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.am24.brickstemple.data.local.dao.ProductDao
-import com.am24.brickstemple.data.mappers.toDto
+import com.am24.brickstemple.data.mapper.toDto
 import com.am24.brickstemple.data.remote.dto.ProductDto
 import com.am24.brickstemple.ui.components.ScreenLoader
 import com.am24.brickstemple.ui.navigation.Screen
-import com.am24.brickstemple.ui.viewmodels.CartViewModel
 import com.am24.brickstemple.utils.PriceFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)

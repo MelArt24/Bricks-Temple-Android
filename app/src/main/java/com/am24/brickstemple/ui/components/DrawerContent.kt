@@ -6,7 +6,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.am24.brickstemple.auth.AuthSession
+import com.am24.brickstemple.data.auth.AuthSession
 import com.am24.brickstemple.ui.navigation.Screen
 
 @Composable

@@ -1,7 +1,6 @@
 package com.am24.brickstemple.ui.screens.wishlist
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,12 +30,11 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.am24.brickstemple.data.local.dao.ProductDao
-import com.am24.brickstemple.data.mappers.toDto
+import com.am24.brickstemple.data.mapper.toDto
 import com.am24.brickstemple.ui.components.ScreenLoader
 import com.am24.brickstemple.ui.components.WishlistBottomBar
 import com.am24.brickstemple.ui.navigation.Screen
-import com.am24.brickstemple.ui.viewmodels.CartViewModel
-import com.am24.brickstemple.ui.viewmodels.WishlistViewModel
+import com.am24.brickstemple.ui.screens.cart.CartViewModel
 import com.am24.brickstemple.utils.PriceFormatter
 import com.am24.brickstemple.utils.requireLogin
 
