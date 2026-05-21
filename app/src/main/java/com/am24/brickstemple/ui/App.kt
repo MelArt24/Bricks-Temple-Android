@@ -14,12 +14,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.room.Room
 import com.am24.brickstemple.data.auth.AuthSession
 import com.am24.brickstemple.data.auth.AuthStorage
 import com.am24.brickstemple.ui.screens.auth.LogoutManager
 import com.am24.brickstemple.data.local.ThemePreferenceDataStore
-import com.am24.brickstemple.data.local.db.AppDatabase
+import com.am24.brickstemple.data.local.db.DatabaseProvider
 import com.am24.brickstemple.data.remote.KtorClientProvider
 import com.am24.brickstemple.data.remote.NetworkObserver
 import com.am24.brickstemple.data.remote.NetworkStatus
@@ -80,14 +79,7 @@ fun App() {
         }
 
 
-        val db = remember {
-            Room.databaseBuilder(
-                context,
-                AppDatabase::class.java,
-                "bricks_temple.db"
-            ).fallbackToDestructiveMigration()
-                .build()
-        }
+        val db = remember { DatabaseProvider.get(context) }
         val productDao = remember { db.productDao() }
 
 

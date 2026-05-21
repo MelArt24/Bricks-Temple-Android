@@ -13,7 +13,8 @@ object DatabaseProvider {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "bricks_temple.db"
-            ).build().also { INSTANCE = it }
+            ).fallbackToDestructiveMigration()
+                .build().also { INSTANCE = it }
         }
     }
 }
