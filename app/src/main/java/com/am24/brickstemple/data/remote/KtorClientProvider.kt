@@ -1,6 +1,7 @@
 package com.am24.brickstemple.data.remote
 
 import com.am24.brickstemple.data.auth.AuthSession
+import com.am24.brickstemple.data.remote.util.NetworkConstants
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.DefaultRequest
@@ -33,8 +34,7 @@ import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.util.concurrent.TimeUnit
 
-private const val BASE_URL = "https://bricks-temple-server.onrender.com"
-private const val HEALTH_URL = "$BASE_URL/health"
+private const val HEALTH_URL = NetworkConstants.HEALTH_URL
 
 enum class NetworkStatus {
     CONNECTED,

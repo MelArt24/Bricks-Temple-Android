@@ -1,6 +1,7 @@
 package com.am24.brickstemple.data.remote
 
 import com.am24.brickstemple.data.remote.dto.WishlistResponse
+import com.am24.brickstemple.data.remote.util.NetworkConstants
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.*
@@ -11,7 +12,7 @@ open class WishlistApiService(
     private val client: HttpClient
 ) {
 
-    private val BASE_URL = "https://bricks-temple-server.onrender.com/wishlist"
+    private val BASE_URL = NetworkConstants.WISHLIST_URL
 
     open suspend fun getWishlist(): WishlistResponse? {
         val response = client.get(BASE_URL)

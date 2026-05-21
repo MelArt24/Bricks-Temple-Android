@@ -9,6 +9,7 @@ import com.am24.brickstemple.data.remote.auth.LoginRequest
 import com.am24.brickstemple.data.remote.auth.RegisterRequest
 import com.am24.brickstemple.data.remote.auth.UpdateUserRequest
 import com.am24.brickstemple.data.remote.auth.UserMeResponse
+import com.am24.brickstemple.data.remote.util.NetworkConstants
 import com.am24.brickstemple.domain.repository.AuthRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
@@ -29,11 +30,9 @@ class AuthRepositoryImpl(
     private val appContext: Context? = null
 ) : AuthRepository {
 
-    private val BASE_URL = "https://bricks-temple-server.onrender.com/auth"
-
     override suspend fun login(email: String, password: String): String {
 
-        val response: HttpResponse = client.post("$BASE_URL/login") {
+        val response: HttpResponse = client.post("${NetworkConstants.AUTH_URL}/login") {
             contentType(ContentType.Application.Json)
             setBody(LoginRequest(email, password))
         }
@@ -61,7 +60,7 @@ class AuthRepositoryImpl(
 
     override suspend fun register(username: String, email: String, password: String): Long {
 
-        val response: HttpResponse = client.post("$BASE_URL/register") {
+        val response: HttpResponse = client.post("${NetworkConstants.AUTH_URL}/register") {
             contentType(ContentType.Application.Json)
             setBody(RegisterRequest(username, email, password))
         }
@@ -109,7 +108,7 @@ class AuthRepositoryImpl(
 
     override suspend fun getCurrentUser(): UserMeResponse {
 
-        val response = client.get("https://bricks-temple-server.onrender.com/users/me")
+        val response = client.get("${NetworkConstants.USERS_URL}/me")
 
         if (!response.status.isSuccess()) {
             throw Exception(parseError(response))
@@ -120,7 +119,7 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun updateUser(id: Int, req: UpdateUserRequest) {
-        val response: HttpResponse = client.put("https://bricks-temple-server.onrender.com/users/$id") {
+        val response: HttpResponse = client.put("${NetworkConstants.USERS_URL}/$id") {
             contentType(ContentType.Application.Json)
             setBody(req)
         }

@@ -1,6 +1,7 @@
 package com.am24.brickstemple.data.remote
 
 import com.am24.brickstemple.data.remote.dto.ProductDto
+import com.am24.brickstemple.data.remote.util.NetworkConstants
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -9,7 +10,7 @@ import kotlinx.coroutines.delay
 open class ProductApiService(
     private val client: HttpClient
 ) {
-    private val BASE_URL = "https://bricks-temple-server.onrender.com/products"
+    private val BASE_URL = NetworkConstants.PRODUCTS_URL
 
     private suspend inline fun <reified T> safeRequest(
         crossinline block: suspend () -> T
