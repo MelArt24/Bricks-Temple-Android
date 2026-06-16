@@ -77,15 +77,16 @@ class AuthStorageTest {
     @Before
     fun setup() {
         AuthSession.clear()
+        AuthStorage.tokenCipher = FakeTokenCipher
     }
 
     @Test
-    fun `save should write token email username`() {
+    fun `save should encrypt token and write plain email username`() {
         AuthStorage.save(context, "abc123", "test@mail.com", "Artem")
 
         val prefs = context.getSharedPreferences("auth_prefs", 0)
 
-        assertEquals("abc123", prefs.getString("token", null))
+        assertEquals("enc:abc123", prefs.getString("token", null))
         assertEquals("test@mail.com", prefs.getString("email", null))
         assertEquals("Artem", prefs.getString("username", null))
     }
@@ -94,7 +95,7 @@ class AuthStorageTest {
     fun `load should update AuthSession`() {
         val prefs = context.getSharedPreferences("auth_prefs", 0)
         prefs.edit()
-            .putString("token", "zzz")
+            .putString("token", "enc:zzz")
             .putString("email", "user@mail.com")
             .putString("username", "TestUser")
             .apply()
@@ -108,6 +109,21 @@ class AuthStorageTest {
     }
 
     @Test
+    fun `load should migrate legacy plain token to encrypted token`() {
+        val prefs = context.getSharedPreferences("auth_prefs", 0)
+        prefs.edit()
+            .putString("token", "legacy")
+            .putString("email", "user@mail.com")
+            .putString("username", "TestUser")
+            .apply()
+
+        AuthStorage.load(context)
+
+        assertEquals("legacy", AuthSession.token)
+        assertEquals("enc:legacy", prefs.getString("token", null))
+    }
+
+    @Test
     fun `clear should remove all stored values`() {
         val prefs = context.getSharedPreferences("auth_prefs", 0)
         prefs.edit().putString("token", "hello").apply()
@@ -116,4 +132,12 @@ class AuthStorageTest {
 
         assertNull(prefs.getString("token", null))
     }
+}
+
+private object FakeTokenCipher : TokenCipher {
+    override fun isEncrypted(value: String): Boolean = value.startsWith("enc:")
+
+    override fun encrypt(value: String): String = "enc:$value"
+
+    override fun decrypt(value: String): String? = value.removePrefix("enc:")
 }

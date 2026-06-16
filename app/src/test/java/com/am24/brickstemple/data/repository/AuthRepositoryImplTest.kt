@@ -86,7 +86,7 @@ class AuthRepositoryImplTest {
             )
         )
 
-        val repo = AuthRepositoryImpl(client, mockContext())
+        val repo = AuthRepositoryImpl(client)
 
         val token = repo.login("test@mail.com", "pass")
 

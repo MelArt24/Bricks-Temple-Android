@@ -54,7 +54,8 @@ object KtorClientProvider {
 
     private fun makeOkHttp(): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            redactHeader(HttpHeaders.Authorization)
+            level = HttpLoggingInterceptor.Level.NONE
         }
 
         return OkHttpClient.Builder()
