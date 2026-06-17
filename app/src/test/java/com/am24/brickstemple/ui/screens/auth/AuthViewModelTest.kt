@@ -1,7 +1,7 @@
 package com.am24.brickstemple.ui.screens.auth
 
-import com.am24.brickstemple.data.remote.auth.UpdateUserRequest
-import com.am24.brickstemple.data.remote.auth.UserMeResponse
+import com.am24.brickstemple.domain.model.UpdateUser
+import com.am24.brickstemple.domain.model.User
 import com.am24.brickstemple.domain.repository.AuthRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -27,7 +27,7 @@ class FakeAuthRepository : AuthRepository {
     override suspend fun logout() {}
 
     override suspend fun getCurrentUser() =
-        UserMeResponse(
+        User(
             id = 1,
             username = "TestUser",
             email = "a@mail.com",
@@ -36,7 +36,7 @@ class FakeAuthRepository : AuthRepository {
 
     override suspend fun updateUser(
         id: Int,
-        req: UpdateUserRequest
+        user: UpdateUser
     ) {
         TODO("Not yet implemented")
     }

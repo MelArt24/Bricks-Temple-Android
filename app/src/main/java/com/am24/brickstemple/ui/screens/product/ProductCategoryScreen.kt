@@ -9,7 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.am24.brickstemple.data.remote.dto.ProductDto
+import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.ui.components.ProductItemCard
 import com.am24.brickstemple.ui.navigation.AppNavGraphCallbacks
 import com.am24.brickstemple.ui.navigation.Screen
@@ -270,7 +270,7 @@ fun FilterBottomSheet(
 
 @Composable
 fun CategoryContent(
-    products: List<ProductDto>,
+    products: List<Product>,
     navController: NavController,
     wishlist: List<Int>,
     cart: Map<Int, Int>,

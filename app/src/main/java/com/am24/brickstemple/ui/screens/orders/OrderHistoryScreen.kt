@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.am24.brickstemple.data.remote.OrderApiService
+import com.am24.brickstemple.domain.model.Order
 import com.am24.brickstemple.ui.navigation.Screen
 import com.am24.brickstemple.utils.DateFormatter
 import com.am24.brickstemple.utils.PriceFormatter
@@ -81,7 +81,7 @@ fun OrderHistoryScreen(
 
 @Composable
 fun OrderCard(
-    order: OrderApiService.OrderResponse,
+    order: Order,
     onClick: () -> Unit
 ) {
     ElevatedCard(

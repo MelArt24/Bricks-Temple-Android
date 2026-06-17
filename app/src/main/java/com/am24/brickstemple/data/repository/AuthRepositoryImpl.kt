@@ -3,13 +3,15 @@ package com.am24.brickstemple.data.repository
 import android.content.Context
 import com.am24.brickstemple.data.auth.AuthSession
 import com.am24.brickstemple.data.auth.AuthStorage
+import com.am24.brickstemple.data.mapper.toDomain
+import com.am24.brickstemple.data.mapper.toRequest
 import com.am24.brickstemple.data.remote.auth.AuthLoginResponse
 import com.am24.brickstemple.data.remote.auth.AuthRegisterResponse
 import com.am24.brickstemple.data.remote.auth.LoginRequest
 import com.am24.brickstemple.data.remote.auth.RegisterRequest
-import com.am24.brickstemple.data.remote.auth.UpdateUserRequest
 import com.am24.brickstemple.data.remote.auth.UserMeResponse
 import com.am24.brickstemple.data.remote.util.NetworkConstants
+import com.am24.brickstemple.domain.model.UpdateUser
 import com.am24.brickstemple.domain.repository.AuthRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
@@ -106,7 +108,9 @@ class AuthRepositoryImpl(
         this.value in 200..299
 
 
-    override suspend fun getCurrentUser(): UserMeResponse {
+    override suspend fun getCurrentUser() = getCurrentUserResponse().toDomain()
+
+    private suspend fun getCurrentUserResponse(): UserMeResponse {
 
         val response = client.get("${NetworkConstants.USERS_URL}/me")
 
@@ -118,10 +122,10 @@ class AuthRepositoryImpl(
         return Json.decodeFromString<UserMeResponse>(body)
     }
 
-    override suspend fun updateUser(id: Int, req: UpdateUserRequest) {
+    override suspend fun updateUser(id: Int, user: UpdateUser) {
         val response: HttpResponse = client.put("${NetworkConstants.USERS_URL}/$id") {
             contentType(ContentType.Application.Json)
-            setBody(req)
+            setBody(user.toRequest())
         }
 
         if (!response.status.isSuccess()) {

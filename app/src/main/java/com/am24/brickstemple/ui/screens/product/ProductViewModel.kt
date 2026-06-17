@@ -3,14 +3,14 @@ package com.am24.brickstemple.ui.screens.product
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.am24.brickstemple.data.remote.dto.ProductDto
+import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.domain.repository.ProductRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 data class ProductUiState(
     val isLoading: Boolean = false,
-    val products: List<ProductDto> = emptyList(),
+    val products: List<Product> = emptyList(),
     val error: String? = null
 )
 
@@ -30,7 +30,7 @@ enum class SortOrder {
 
 
 class ProductViewModel(
-    val repo: ProductRepository
+    private val repo: ProductRepository
 ) : ViewModel() {
 
     private val _sets = MutableStateFlow(ProductUiState())
@@ -87,7 +87,7 @@ class ProductViewModel(
         _searchQuery.value = query
     }
 
-    fun matchesQuery(product: ProductDto, query: String): Boolean {
+    fun matchesQuery(product: Product, query: String): Boolean {
         if (query.isBlank()) return true
 
         val q = query.lowercase()
@@ -145,7 +145,7 @@ class ProductViewModel(
         }
     }
 
-    private fun applySorting(list: List<ProductDto>, order: SortOrder): List<ProductDto> {
+    private fun applySorting(list: List<Product>, order: SortOrder): List<Product> {
         return when (order) {
             SortOrder.PRICE_ASC -> list.sortedBy { it.price }
             SortOrder.PRICE_DESC -> list.sortedByDescending { it.price }

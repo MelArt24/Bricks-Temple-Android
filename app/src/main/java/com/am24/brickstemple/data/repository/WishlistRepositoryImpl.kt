@@ -1,7 +1,8 @@
 package com.am24.brickstemple.data.repository
 
+import com.am24.brickstemple.data.mapper.toDomain
 import com.am24.brickstemple.data.remote.WishlistApiService
-import com.am24.brickstemple.data.remote.dto.WishlistItemDto
+import com.am24.brickstemple.domain.model.WishlistItem
 import com.am24.brickstemple.domain.repository.WishlistRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,8 +19,8 @@ open class WishlistRepositoryImpl(
     val _wishlist = MutableStateFlow<Map<Int, Int>>(emptyMap())
     override val wishlist: StateFlow<Map<Int, Int>> = _wishlist.asStateFlow()
 
-    val _items = MutableStateFlow<List<WishlistItemDto>>(emptyList())
-    override val items: StateFlow<List<WishlistItemDto>> = _items.asStateFlow()
+    val _items = MutableStateFlow<List<WishlistItem>>(emptyList())
+    override val items: StateFlow<List<WishlistItem>> = _items.asStateFlow()
 
     private val _isUpdating = MutableStateFlow<Set<Int>>(emptySet())
     override val isUpdating: StateFlow<Set<Int>> = _isUpdating.asStateFlow()
@@ -41,7 +42,7 @@ open class WishlistRepositoryImpl(
             val response = api.getWishlist()
 
             _wishlist.value = response?.items?.associate { it.productId to it.id!! } ?: emptyMap()
-            _items.value = response?.items ?: emptyList()
+            _items.value = response?.items?.map { it.toDomain() } ?: emptyList()
 
             _isLoaded.value = true
         } finally {
@@ -100,7 +101,7 @@ open class WishlistRepositoryImpl(
         }
     }
 
-    override fun lastFetchedItem(productId: Int): WishlistItemDto? =
+    override fun lastFetchedItem(productId: Int): WishlistItem? =
         _items.value.firstOrNull { it.productId == productId }
 
     override suspend fun updateQuantity(itemId: Int, newQuantity: Int) = withContext(dispatcher) {

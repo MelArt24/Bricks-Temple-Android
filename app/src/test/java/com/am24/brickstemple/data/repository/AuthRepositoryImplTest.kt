@@ -3,8 +3,8 @@ package com.am24.brickstemple.data.repository
 import android.content.Context
 import com.am24.brickstemple.data.auth.AuthSession
 import com.am24.brickstemple.data.remote.auth.AuthRegisterResponse
-import com.am24.brickstemple.data.remote.auth.UpdateUserRequest
 import com.am24.brickstemple.data.remote.auth.UserMeResponse
+import com.am24.brickstemple.domain.model.UpdateUser
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -242,7 +242,7 @@ class AuthRepositoryImplTest {
 
         repo.updateUser(
             id = 10,
-            req = UpdateUserRequest(
+            user = UpdateUser(
                 username = "NewName",
                 email = "new@mail.com",
                 password = "123456"
@@ -263,7 +263,7 @@ class AuthRepositoryImplTest {
         try {
             repo.updateUser(
                 id = 10,
-                req = UpdateUserRequest(
+                user = UpdateUser(
                     username = "Name",
                     email = "email@mail.com",
                     password = "pass"

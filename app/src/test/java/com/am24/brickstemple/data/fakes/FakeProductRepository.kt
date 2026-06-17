@@ -1,22 +1,15 @@
 package com.am24.brickstemple.data.fakes
 
-import com.am24.brickstemple.data.mapper.toEntity
-import com.am24.brickstemple.data.remote.ProductApiService
-import com.am24.brickstemple.data.local.dao.ProductDao
-import com.am24.brickstemple.data.remote.dto.ProductDto
+import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.domain.repository.ProductRepository
-import io.ktor.client.HttpClient
-import kotlinx.coroutines.Dispatchers
 
 class FakeProductRepository : ProductRepository {
-    override val productDao: ProductDao
-        get() = FakeProductDao()
-
-    override suspend fun getCachedByType(type: String): List<ProductDto> = emptyList()
-    override suspend fun searchLocal(query: String): List<ProductDto> = emptyList()
-    override suspend fun getLocalById(id: Int): ProductDto? = null
-    override suspend fun refreshAllTypesParallel(): List<ProductDto> = emptyList()
-    override suspend fun syncByType(type: String): List<ProductDto> = emptyList()
+    override suspend fun getCachedByType(type: String): List<Product> = emptyList()
+    override suspend fun getCachedByIds(ids: List<Int>): List<Product> = emptyList()
+    override suspend fun searchLocal(query: String): List<Product> = emptyList()
+    override suspend fun getLocalById(id: Int): Product? = null
+    override suspend fun refreshAllTypesParallel(): List<Product> = emptyList()
+    override suspend fun syncByType(type: String): List<Product> = emptyList()
 
     override suspend fun getFiltered(
         type: String?,
@@ -25,11 +18,11 @@ class FakeProductRepository : ProductRepository {
         minPrice: String?,
         maxPrice: String?,
         year: String?
-    ): List<ProductDto> = emptyList()
+    ): List<Product> = emptyList()
 
     var shouldThrow = false
 
-    private val product = ProductDto(
+    private val product = Product(
         id = 1,
         name = "Falcon",
         category = "Star Wars",
@@ -40,16 +33,9 @@ class FakeProductRepository : ProductRepository {
         description = ""
     )
 
-    override suspend fun getById(id: Int): ProductDto {
+    override suspend fun getById(id: Int): Product {
         if (shouldThrow) throw RuntimeException("Error loading")
 
         return product
-    }
-}
-
-class FakeApiService : ProductApiService(HttpClient()) {
-
-    override suspend fun getProductById(id: Int): ProductDto {
-        error("Should not be called")
     }
 }

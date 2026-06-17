@@ -8,7 +8,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.am24.brickstemple.data.remote.dto.ProductDto
+import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.ui.components.CategorySection
 import com.am24.brickstemple.ui.components.ProductDemo
 import com.am24.brickstemple.ui.navigation.Screen
@@ -41,7 +41,7 @@ fun ProductListScreen(
 
     val cart = cartViewModel.cart.collectAsState().value
 
-    fun mapDtoToDemo(dto: ProductDto): ProductDemo {
+    fun mapDtoToDemo(dto: Product): ProductDemo {
         val id = dto.id
 
         if (!userIsLoggedIn) {
@@ -87,7 +87,7 @@ fun ProductListScreen(
     data class CategoryBlock(
         val title: String,
         val route: String,
-        val items: List<ProductDto>
+        val items: List<Product>
     )
 
     val blocks = listOf(

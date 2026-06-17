@@ -111,7 +111,7 @@ fun App() {
         }
 
         val wishlistViewModel: WishlistViewModel =
-            viewModel(factory = WishlistViewModel.Factory(wishlistRepository))
+            viewModel(factory = WishlistViewModel.Factory(wishlistRepository, productRepository))
 
         val productViewModel: ProductViewModel =
             viewModel(factory = ProductViewModel.Factory(productRepository))
@@ -155,7 +155,7 @@ fun App() {
         }
 
         val cartViewModel: CartViewModel =
-            viewModel(factory = CartViewModel.Factory(cartRepository))
+            viewModel(factory = CartViewModel.Factory(cartRepository, productRepository))
 
         val orderViewModel: OrderViewModel =
             viewModel(factory = OrderViewModel.Factory(orderRepository))
@@ -227,6 +227,7 @@ fun App() {
                     wishlistViewModel = wishlistViewModel,
                     cartViewModel = cartViewModel,
                     orderViewModel = orderViewModel,
+                    productRepository = productRepository,
                     openSort = { AppNavGraphCallbacks.openSort?.invoke() },
                     openFilters = { AppNavGraphCallbacks.openFilters?.invoke() }
                 )

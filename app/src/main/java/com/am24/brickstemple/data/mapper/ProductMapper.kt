@@ -2,6 +2,7 @@ package com.am24.brickstemple.data.mapper
 
 import com.am24.brickstemple.data.local.entities.ProductEntity
 import com.am24.brickstemple.data.remote.dto.ProductDto
+import com.am24.brickstemple.domain.model.Product
 
 fun ProductDto.toEntity() = ProductEntity(
     id = id,
@@ -23,7 +24,27 @@ fun ProductDto.toEntity() = ProductEntity(
     isAvailable = isAvailable
 )
 
-fun ProductEntity.toDto() = ProductDto(
+fun ProductDto.toDomain() = Product(
+    id = id,
+    name = name,
+    category = category,
+    number = number,
+    details = details,
+    minifigures = minifigures,
+    age = age,
+    year = year,
+    size = size,
+    condition = condition,
+    price = price,
+    createdAt = createdAt,
+    image = image,
+    description = description,
+    type = type,
+    keywords = keywords,
+    isAvailable = isAvailable
+)
+
+fun ProductEntity.toDomain() = Product(
     id = id,
     name = name,
     category = category,

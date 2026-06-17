@@ -1,9 +1,7 @@
 package com.am24.brickstemple.data.repository
 
 import com.am24.brickstemple.data.fakes.FakeWishlistApiService
-import com.am24.brickstemple.data.remote.dto.WishlistItemDto
-import com.am24.brickstemple.data.repository.WishlistRepositoryImpl
-import com.am24.brickstemple.domain.repository.WishlistRepository
+import com.am24.brickstemple.domain.model.WishlistItem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -249,8 +247,8 @@ class WishlistRepositoryTest {
             20 to 2
         )
         repo._items.value = listOf(
-            WishlistItemDto(id = 1, wishlistId = 1, productId = 10, quantity = 1),
-            WishlistItemDto(id = 2, wishlistId = 1, productId = 20, quantity = 2)
+            WishlistItem(id = 1, wishlistId = 1, productId = 10, quantity = 1),
+            WishlistItem(id = 2, wishlistId = 1, productId = 20, quantity = 2)
         )
 
         api.serverItems = mutableListOf(

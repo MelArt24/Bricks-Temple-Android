@@ -3,14 +3,17 @@ package com.am24.brickstemple.ui.screens.cart
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.domain.repository.CartRepository
+import com.am24.brickstemple.domain.repository.ProductRepository
 import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class CartViewModel(
-    private val repo: CartRepository
+    private val repo: CartRepository,
+    private val productRepository: ProductRepository
 ) : ViewModel() {
 
     val cart = repo.cart
@@ -31,10 +34,15 @@ class CartViewModel(
     private val _unauthorized = MutableStateFlow(false)
     val unauthorized = _unauthorized.asStateFlow()
 
+    private val _products = MutableStateFlow<List<Product>>(emptyList())
+    val products = _products.asStateFlow()
+
     init {
         viewModelScope.launch {
             try {
                 repo.refresh()
+                val productIds = repo.cart.value.keys.toList()
+                _products.value = productRepository.getCachedByIds(productIds)
             } catch (_: Exception) { }
         }
     }
@@ -72,6 +80,15 @@ class CartViewModel(
     fun refresh() {
         viewModelScope.launch {
             repo.refresh()
+            val productIds = repo.cart.value.keys.toList()
+            _products.value = productRepository.getCachedByIds(productIds)
+        }
+    }
+
+    fun loadProducts() {
+        viewModelScope.launch {
+            val productIds = repo.cart.value.keys.toList()
+            _products.value = productRepository.getCachedByIds(productIds)
         }
     }
 
@@ -130,11 +147,12 @@ class CartViewModel(
     }
 
     class Factory(
-        private val repo: CartRepository
+        private val repo: CartRepository,
+        private val productRepository: ProductRepository
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return CartViewModel(repo) as T
+            return CartViewModel(repo, productRepository) as T
         }
     }
 }

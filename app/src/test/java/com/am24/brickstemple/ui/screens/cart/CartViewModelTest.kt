@@ -2,6 +2,7 @@ package com.am24.brickstemple.ui.screens.cart
 
 import com.am24.brickstemple.MainDispatcherRule
 import com.am24.brickstemple.domain.repository.CartRepository
+import com.am24.brickstemple.domain.repository.ProductRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -18,11 +19,13 @@ class CartViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var repo: CartRepository
+    private lateinit var productRepository: ProductRepository
     private lateinit var viewModel: CartViewModel
 
     @Before
     fun setup() {
         repo = mockk(relaxed = true)
+        productRepository = mockk(relaxed = true)
 
         every { repo.cart } returns MutableStateFlow(emptyMap())
         every { repo.isUpdating } returns MutableStateFlow(emptySet())
@@ -37,8 +40,9 @@ class CartViewModelTest {
         coEvery { repo.updateQuantity(any(), any()) } returns Unit
         coEvery { repo.removeCompletely(any()) } returns Unit
         coEvery { repo.clearCart() } returns Unit
+        coEvery { productRepository.getCachedByIds(any()) } returns emptyList()
 
-        viewModel = CartViewModel(repo)
+        viewModel = CartViewModel(repo, productRepository)
     }
 
     @Test

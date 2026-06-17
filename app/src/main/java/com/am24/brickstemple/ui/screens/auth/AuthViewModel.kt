@@ -6,8 +6,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.am24.brickstemple.data.auth.AuthSession
 import com.am24.brickstemple.data.remote.KtorClientProvider
-import com.am24.brickstemple.data.remote.auth.UpdateUserRequest
 import com.am24.brickstemple.data.repository.AuthRepositoryImpl
+import com.am24.brickstemple.domain.model.UpdateUser
 import com.am24.brickstemple.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -209,7 +209,7 @@ class AuthViewModel(
             try {
                 authRepository.updateUser(
                     userId,
-                    UpdateUserRequest(
+                    UpdateUser(
                         username = username,
                         email = email,
                         password = newPassword

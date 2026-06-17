@@ -11,7 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.am24.brickstemple.ui.screens.product.ProductViewModel
+import com.am24.brickstemple.domain.repository.ProductRepository
 import com.am24.brickstemple.utils.DateFormatter
 import com.am24.brickstemple.utils.PriceFormatter
 
@@ -19,7 +19,7 @@ import com.am24.brickstemple.utils.PriceFormatter
 fun OrderDetailsScreen(
     orderId: Int?,
     viewModel: OrderViewModel,
-    productViewModel: ProductViewModel,
+    productRepository: ProductRepository,
     paddingValues: PaddingValues
 ) {
     if (orderId == null) {
@@ -33,7 +33,7 @@ fun OrderDetailsScreen(
     val fullItems by viewModel.orderDetailsFull.collectAsState()
 
     LaunchedEffect(orderId) {
-        viewModel.loadOrderDetails(orderId, productViewModel.repo)
+        viewModel.loadOrderDetails(orderId, productRepository)
     }
 
 

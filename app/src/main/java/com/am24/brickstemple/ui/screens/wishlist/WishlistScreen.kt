@@ -29,8 +29,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import com.am24.brickstemple.data.local.dao.ProductDao
-import com.am24.brickstemple.data.mapper.toDto
 import com.am24.brickstemple.ui.components.ScreenLoader
 import com.am24.brickstemple.ui.components.WishlistBottomBar
 import com.am24.brickstemple.ui.navigation.Screen
@@ -43,7 +41,6 @@ import com.am24.brickstemple.utils.requireLogin
 fun WishlistScreen(
     navController: NavController,
     wishlistViewModel: WishlistViewModel,
-    productDao: ProductDao,
     paddingValues: PaddingValues,
     cartViewModel: CartViewModel
 ) {
@@ -54,16 +51,12 @@ fun WishlistScreen(
     val isLoading = wishlistViewModel.isLoading.collectAsState().value
     val cart = cartViewModel.cart.collectAsState().value
 
-    var products by remember { mutableStateOf(emptyList<com.am24.brickstemple.data.remote.dto.ProductDto>()) }
+    val products = wishlistViewModel.products.collectAsState().value
 
     val productIds = wishlist.keys.toList()
 
     LaunchedEffect(productIds) {
-        products =
-            if (productIds.isEmpty()) emptyList()
-            else productDao
-                .getByIds(productIds)
-                .map { it.toDto() }
+        wishlistViewModel.loadProducts()
     }
 
     val itemDtos = wishlistViewModel.items.collectAsState().value
@@ -74,10 +67,6 @@ fun WishlistScreen(
     LaunchedEffect(refreshing) {
         if (refreshing) {
             wishlistViewModel.refresh()
-
-            if (productIds.isNotEmpty()) {
-                products = productDao.getByIds(productIds).map { it.toDto() }
-            }
 
             refreshing = false
         }

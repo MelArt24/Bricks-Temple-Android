@@ -1,16 +1,15 @@
 package com.am24.brickstemple.domain.repository
 
-import com.am24.brickstemple.data.local.dao.ProductDao
-import com.am24.brickstemple.data.remote.dto.ProductDto
+import com.am24.brickstemple.domain.model.Product
 
 interface ProductRepository {
-    val productDao: ProductDao
-    suspend fun getCachedByType(type: String): List<ProductDto>
-    suspend fun searchLocal(query: String): List<ProductDto>
-    suspend fun getLocalById(id: Int): ProductDto?
-    suspend fun refreshAllTypesParallel(): List<ProductDto>
-    suspend fun syncByType(type: String): List<ProductDto>
-    suspend fun getById(id: Int): ProductDto
+    suspend fun getCachedByType(type: String): List<Product>
+    suspend fun getCachedByIds(ids: List<Int>): List<Product>
+    suspend fun searchLocal(query: String): List<Product>
+    suspend fun getLocalById(id: Int): Product?
+    suspend fun refreshAllTypesParallel(): List<Product>
+    suspend fun syncByType(type: String): List<Product>
+    suspend fun getById(id: Int): Product
     suspend fun getFiltered(
         type: String? = null,
         category: String? = null,
@@ -18,5 +17,5 @@ interface ProductRepository {
         minPrice: String? = null,
         maxPrice: String? = null,
         year: String? = null
-    ): List<ProductDto>
+    ): List<Product>
 }

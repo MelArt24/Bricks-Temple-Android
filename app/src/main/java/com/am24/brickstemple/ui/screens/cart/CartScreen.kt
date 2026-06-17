@@ -15,9 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.am24.brickstemple.data.local.dao.ProductDao
-import com.am24.brickstemple.data.mapper.toDto
-import com.am24.brickstemple.data.remote.dto.ProductDto
+import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.ui.components.ScreenLoader
 import com.am24.brickstemple.ui.navigation.Screen
 import com.am24.brickstemple.utils.PriceFormatter
@@ -27,7 +25,6 @@ import com.am24.brickstemple.utils.PriceFormatter
 fun CartScreen(
     navController: NavController,
     viewModel: CartViewModel,
-    productDao: ProductDao,
     paddingValues: PaddingValues
 ) {
     val cartMap = viewModel.cart.collectAsState().value
@@ -39,15 +36,13 @@ fun CartScreen(
     val checkoutInProgress = viewModel.checkoutInProgress.collectAsState().value
     val checkoutResult = viewModel.checkoutResult.collectAsState().value
 
-    var products by remember { mutableStateOf(emptyList<com.am24.brickstemple.data.remote.dto.ProductDto>()) }
+    val products = viewModel.products.collectAsState().value
     val productIds = cartMap.keys.toList()
 
     val unauthorized by viewModel.unauthorized.collectAsState()
 
     LaunchedEffect(productIds) {
-        products =
-            if (productIds.isEmpty()) emptyList()
-            else productDao.getByIds(productIds).map { it.toDto() }
+        viewModel.loadProducts()
     }
 
     LaunchedEffect(unauthorized) {
@@ -130,7 +125,7 @@ private fun LoadingView() {
 
 @Composable
 private fun CartContent(
-    products: List<ProductDto>,
+    products: List<Product>,
     cartMap: Map<Int, Int>,
     updatingQty: Int?,
     updatingIds: Set<Int>,

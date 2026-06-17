@@ -1,8 +1,10 @@
 package com.am24.brickstemple.domain.repository
 
-import com.am24.brickstemple.data.remote.OrderApiService
+import com.am24.brickstemple.domain.model.Order
+import com.am24.brickstemple.domain.model.OrderDetails
+import com.am24.brickstemple.domain.model.PagedResult
 
 interface OrderRepository {
-    suspend fun getMyOrders(): OrderApiService.PagedResponse<OrderApiService.OrderResponse>
-    suspend fun getOrderDetails(id: Int): OrderApiService.OrderWithItemsResponse
+    suspend fun getMyOrders(): PagedResult<Order>
+    suspend fun getOrderDetails(id: Int): OrderDetails
 }
