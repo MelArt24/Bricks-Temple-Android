@@ -4,12 +4,23 @@ import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.domain.repository.ProductRepository
 
 class FakeProductRepository : ProductRepository {
+    var cachedByTypeError: Exception? = null
+    var cachedByIdsError: Exception? = null
+    var cachedByTypeProducts: Map<String, List<Product>> = emptyMap()
+    var cachedByIdsProducts: List<Product> = emptyList()
     var searchLocalError: Exception? = null
     var getByIdError: Exception? = null
     var getFilteredError: Exception? = null
 
-    override suspend fun getCachedByType(type: String): List<Product> = emptyList()
-    override suspend fun getCachedByIds(ids: List<Int>): List<Product> = emptyList()
+    override suspend fun getCachedByType(type: String): List<Product> {
+        cachedByTypeError?.let { throw it }
+        return cachedByTypeProducts[type].orEmpty()
+    }
+
+    override suspend fun getCachedByIds(ids: List<Int>): List<Product> {
+        cachedByIdsError?.let { throw it }
+        return cachedByIdsProducts
+    }
     override suspend fun searchLocal(query: String): List<Product> {
         searchLocalError?.let { throw it }
         return emptyList()

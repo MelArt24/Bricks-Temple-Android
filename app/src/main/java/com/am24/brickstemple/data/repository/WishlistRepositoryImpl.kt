@@ -77,9 +77,15 @@ open class WishlistRepositoryImpl(
         pendingJobs[productId]?.cancel()
 
         val job = scope.launch {
-            delay(200)
+            try {
+                delay(200)
 
-            performToggle(productId)
+                performToggle(productId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                _isUpdating.value -= productId
+            }
 
             pendingJobs.remove(productId)
 

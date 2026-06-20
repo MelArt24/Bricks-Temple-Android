@@ -2,9 +2,11 @@ package com.am24.brickstemple.ui.screens.wishlist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.am24.brickstemple.domain.error.AppException
 import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.domain.repository.ProductRepository
 import com.am24.brickstemple.domain.repository.WishlistRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -27,23 +29,38 @@ class WishlistViewModel(
     private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products = _products.asStateFlow()
 
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage = _errorMessage.asStateFlow()
+
     fun refresh() {
         viewModelScope.launch {
-            repo.refresh()
-            loadProducts()
+            try {
+                _errorMessage.value = null
+                repo.refresh()
+                loadProductsForCurrentWishlist()
+            } catch (e: Exception) {
+                handleError(e)
+            }
         }
     }
 
     fun loadProducts() {
         viewModelScope.launch {
-            val productIds = repo.wishlist.value.keys.toList()
-            _products.value = productRepository.getCachedByIds(productIds)
+            try {
+                loadProductsForCurrentWishlist()
+            } catch (e: Exception) {
+                handleError(e)
+            }
         }
     }
 
     fun toggle(productId: Int) {
         viewModelScope.launch {
-            repo.toggle(productId)
+            try {
+                repo.toggle(productId)
+            } catch (e: Exception) {
+                handleError(e)
+            }
         }
     }
 
@@ -61,6 +78,8 @@ class WishlistViewModel(
                     delta == -1 -> repo.removeOne(productId)
                     else -> repo.updateQuantity(item.id!!, newQty)
                 }
+            } catch (e: Exception) {
+                handleError(e)
             } finally {
                 _updatingQuantity.value = null
             }
@@ -69,7 +88,11 @@ class WishlistViewModel(
 
     fun removeCompletely(productId: Int) {
         viewModelScope.launch {
-            repo.removeCompletely(productId)
+            try {
+                repo.removeCompletely(productId)
+            } catch (e: Exception) {
+                handleError(e)
+            }
         }
     }
 
@@ -77,13 +100,35 @@ class WishlistViewModel(
         viewModelScope.launch {
             repo.clearLocal()
             _updatingQuantity.value = null
+            _errorMessage.value = null
         }
     }
 
 
     fun clearWishlist() {
         viewModelScope.launch {
-            repo.clearWishlist()
+            try {
+                _errorMessage.value = null
+                repo.clearWishlist()
+            } catch (e: Exception) {
+                handleError(e)
+            }
         }
+    }
+
+    fun clearError() {
+        _errorMessage.value = null
+    }
+
+    private suspend fun loadProductsForCurrentWishlist() {
+        val productIds = repo.wishlist.value.keys.toList()
+        _products.value = productRepository.getCachedByIds(productIds)
+    }
+
+    private fun handleError(error: Exception) {
+        if (error is CancellationException) throw error
+        _errorMessage.value = (error as? AppException)?.error?.userMessage
+            ?: error.message
+            ?: "Unexpected error occurred."
     }
 }

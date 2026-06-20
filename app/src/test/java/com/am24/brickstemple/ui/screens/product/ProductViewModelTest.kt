@@ -166,6 +166,19 @@ class ProductViewModelTest {
     }
 
     @Test
+    fun `startup cache failure exposes category error and resets loading`() = runTest {
+        val repo = FakeProductRepository()
+        repo.cachedByTypeError = AppException(AppError.LocalDataError("Local data error. Please try again."))
+
+        val vm = ProductViewModel(repo)
+        advanceUntilIdle()
+
+        assertEquals("Local data error. Please try again.", vm.sets.value.error)
+        assertEquals("Local data error. Please try again.", vm.minifigs.value.error)
+        assertFalse(vm.loading.value)
+    }
+
+    @Test
     fun `setSearchQuery updates searchQuery flow`() = runTest {
         assertEquals("", vm.searchQuery.value)
 

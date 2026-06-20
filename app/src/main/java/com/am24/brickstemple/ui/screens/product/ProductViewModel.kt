@@ -71,14 +71,14 @@ class ProductViewModel(
         viewModelScope.launch {
             _loading.value = true
 
-            loadLocalCache()
+            loadLocalCacheSafely()
 
             try {
                 repo.refreshAllTypesParallel()
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
             } finally {
-                loadLocalCache()
+                loadLocalCacheSafely()
                 _loading.value = false
             }
         }
@@ -99,12 +99,27 @@ class ProductViewModel(
                 || product.number?.contains(q) == true
     }
 
-    private suspend fun loadLocalCache() {
-        _sets.value = ProductUiState(products = repo.getCachedByType("set"))
-        _minifigs.value = ProductUiState(products = repo.getCachedByType("minifigure"))
-        _details.value = ProductUiState(products = repo.getCachedByType("detail"))
-        _polybags.value = ProductUiState(products = repo.getCachedByType("polybag"))
-        _others.value = ProductUiState(products = repo.getCachedByType("other"))
+    private suspend fun loadLocalCacheSafely() {
+        loadCategorySafely(_sets, "set")
+        loadCategorySafely(_minifigs, "minifigure")
+        loadCategorySafely(_details, "detail")
+        loadCategorySafely(_polybags, "polybag")
+        loadCategorySafely(_others, "other")
+    }
+
+    private suspend fun loadCategorySafely(
+        state: MutableStateFlow<ProductUiState>,
+        type: String
+    ) {
+        try {
+            state.value = ProductUiState(products = repo.getCachedByType(type))
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            state.value = state.value.copy(
+                isLoading = false,
+                error = e.toUserMessage()
+            )
+        }
     }
 
     fun search(query: String) {
