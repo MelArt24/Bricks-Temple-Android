@@ -1,6 +1,7 @@
 package com.am24.brickstemple.data.repository
 
 import android.content.Context
+import com.am24.brickstemple.data.error.toAppException
 import com.am24.brickstemple.data.auth.AuthSession
 import com.am24.brickstemple.data.auth.AuthStorage
 import com.am24.brickstemple.data.mapper.toDomain
@@ -11,6 +12,8 @@ import com.am24.brickstemple.data.remote.auth.LoginRequest
 import com.am24.brickstemple.data.remote.auth.RegisterRequest
 import com.am24.brickstemple.data.remote.auth.UserMeResponse
 import com.am24.brickstemple.data.remote.util.NetworkConstants
+import com.am24.brickstemple.domain.error.AppError
+import com.am24.brickstemple.domain.error.AppException
 import com.am24.brickstemple.domain.model.UpdateUser
 import com.am24.brickstemple.domain.repository.AuthRepository
 import io.ktor.client.HttpClient
@@ -23,6 +26,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -33,51 +37,57 @@ class AuthRepositoryImpl(
 ) : AuthRepository {
 
     override suspend fun login(email: String, password: String): String {
+        try {
+            val response: HttpResponse = client.post("${NetworkConstants.AUTH_URL}/login") {
+                contentType(ContentType.Application.Json)
+                setBody(LoginRequest(email, password))
+            }
 
-        val response: HttpResponse = client.post("${NetworkConstants.AUTH_URL}/login") {
-            contentType(ContentType.Application.Json)
-            setBody(LoginRequest(email, password))
+            if (!response.status.isSuccess()) {
+                throw response.toAuthException()
+            }
+
+            val json = response.bodyAsText()
+            val data = Json.decodeFromString<AuthLoginResponse>(json)
+
+            AuthSession.updateToken(data.token)
+            AuthSession.updateEmail(email)
+
+            val user = getCurrentUser()
+            AuthSession.updateUsername(user.username)
+            AuthSession.updateUserId(user.id)
+
+            appContext?.let {
+                AuthStorage.save(it, data.token, email, user.username)
+            }
+
+            return data.token
+        } catch (e: Exception) {
+            throw e.toAppException("Failed to log in.")
         }
-
-        if (!response.status.isSuccess()) {
-            throw Exception(parseError(response))
-        }
-
-        val json = response.bodyAsText()
-        val data = Json.decodeFromString<AuthLoginResponse>(json)
-
-        AuthSession.updateToken(data.token)
-        AuthSession.updateEmail(email)
-
-        val user = getCurrentUser()
-        AuthSession.updateUsername(user.username)
-        AuthSession.updateUserId(user.id)
-
-        appContext?.let {
-            AuthStorage.save(it, data.token, email, user.username)
-        }
-
-        return data.token
     }
 
     override suspend fun register(username: String, email: String, password: String): Long {
+        try {
+            val response: HttpResponse = client.post("${NetworkConstants.AUTH_URL}/register") {
+                contentType(ContentType.Application.Json)
+                setBody(RegisterRequest(username, email, password))
+            }
 
-        val response: HttpResponse = client.post("${NetworkConstants.AUTH_URL}/register") {
-            contentType(ContentType.Application.Json)
-            setBody(RegisterRequest(username, email, password))
+            if (!response.status.isSuccess()) {
+                throw response.toAuthException()
+            }
+
+            val json = response.bodyAsText()
+            val data = Json.decodeFromString<AuthRegisterResponse>(json)
+
+            AuthSession.updateEmail(email)
+            AuthSession.updateUsername(username)
+
+            return data.id
+        } catch (e: Exception) {
+            throw e.toAppException("Failed to register.")
         }
-
-        if (!response.status.isSuccess()) {
-            throw Exception(parseError(response))
-        }
-
-        val json = response.bodyAsText()
-        val data = Json.decodeFromString<AuthRegisterResponse>(json)
-
-        AuthSession.updateEmail(email)
-        AuthSession.updateUsername(username)
-
-        return data.id
     }
 
     override suspend fun logout() {
@@ -92,7 +102,8 @@ class AuthRepositoryImpl(
             val element = Json.parseToJsonElement(body).jsonObject
 
             element["error"]?.jsonPrimitive?.content?.let { return it }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
         }
 
         return when (response.status) {
@@ -107,29 +118,50 @@ class AuthRepositoryImpl(
     private fun HttpStatusCode.isSuccess(): Boolean =
         this.value in 200..299
 
+    private suspend fun HttpResponse.toAuthException(): AppException {
+        val message = parseError(this)
+
+        return when (status) {
+            HttpStatusCode.Unauthorized,
+            HttpStatusCode.Forbidden -> AppException(AppError.UnauthorizedError(message))
+            HttpStatusCode.NotFound -> AppException(AppError.NotFoundError(message))
+            HttpStatusCode.InternalServerError,
+            HttpStatusCode.BadGateway,
+            HttpStatusCode.ServiceUnavailable,
+            HttpStatusCode.GatewayTimeout -> AppException(AppError.ServerError(status.value, message))
+            else -> AppException(AppError.UnknownError(message))
+        }
+    }
 
     override suspend fun getCurrentUser() = getCurrentUserResponse().toDomain()
 
     private suspend fun getCurrentUserResponse(): UserMeResponse {
+        try {
+            val response = client.get("${NetworkConstants.USERS_URL}/me")
 
-        val response = client.get("${NetworkConstants.USERS_URL}/me")
+            if (!response.status.isSuccess()) {
+                throw response.toAuthException()
+            }
 
-        if (!response.status.isSuccess()) {
-            throw Exception(parseError(response))
+            val body = response.bodyAsText()
+            return Json.decodeFromString<UserMeResponse>(body)
+        } catch (e: Exception) {
+            throw e.toAppException("Failed to load current user.")
         }
-
-        val body = response.bodyAsText()
-        return Json.decodeFromString<UserMeResponse>(body)
     }
 
     override suspend fun updateUser(id: Int, user: UpdateUser) {
-        val response: HttpResponse = client.put("${NetworkConstants.USERS_URL}/$id") {
-            contentType(ContentType.Application.Json)
-            setBody(user.toRequest())
-        }
+        try {
+            val response: HttpResponse = client.put("${NetworkConstants.USERS_URL}/$id") {
+                contentType(ContentType.Application.Json)
+                setBody(user.toRequest())
+            }
 
-        if (!response.status.isSuccess()) {
-            throw Exception(parseError(response))
+            if (!response.status.isSuccess()) {
+                throw response.toAuthException()
+            }
+        } catch (e: Exception) {
+            throw e.toAppException("Failed to update user.")
         }
     }
 

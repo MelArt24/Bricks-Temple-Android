@@ -3,13 +3,14 @@ package com.am24.brickstemple.ui.screens.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.am24.brickstemple.data.auth.AuthSession
+import com.am24.brickstemple.domain.error.AppException
 import com.am24.brickstemple.domain.model.UpdateUser
 import com.am24.brickstemple.domain.repository.AuthRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.IOException
 
 data class AuthFormState(
     val username: String = "",
@@ -32,6 +33,7 @@ class AuthViewModel(
     val registerState: StateFlow<AuthFormState> = _registerState
 
     private val _uiState = MutableStateFlow(AuthFormState())
+    val uiState: StateFlow<AuthFormState> = _uiState
 
     fun onLoginEmailChange(value: String) {
         _loginState.update { it.copy(email = value, errorMessage = null) }
@@ -126,13 +128,10 @@ class AuthViewModel(
     }
 
     private fun mapError(e: Exception): String {
-        println("EXCEPTION = ${e::class}")
-        println("MESSAGE = ${e.message}")
-
-        return when (e) {
-            is IOException -> "No internet connection."
-            else -> e.message ?: "Unexpected error occurred."
-        }
+        if (e is CancellationException) throw e
+        return (e as? AppException)?.error?.userMessage
+            ?: e.message
+            ?: "Unexpected error occurred."
     }
 
 
@@ -173,7 +172,7 @@ class AuthViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = e.message
+                        errorMessage = mapError(e)
                     )
                 }
             }
@@ -215,7 +214,7 @@ class AuthViewModel(
                 onSuccess()
 
             } catch (e: Exception) {
-                onError(e.message ?: "Failed to update password")
+                onError(mapError(e))
             }
         }
     }

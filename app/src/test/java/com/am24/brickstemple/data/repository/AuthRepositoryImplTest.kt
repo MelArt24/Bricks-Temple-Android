@@ -4,6 +4,8 @@ import android.content.Context
 import com.am24.brickstemple.data.auth.AuthSession
 import com.am24.brickstemple.data.remote.auth.AuthRegisterResponse
 import com.am24.brickstemple.data.remote.auth.UserMeResponse
+import com.am24.brickstemple.domain.error.AppError
+import com.am24.brickstemple.domain.error.AppException
 import com.am24.brickstemple.domain.model.UpdateUser
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
@@ -16,8 +18,10 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuthRepositoryImplTest {
@@ -62,6 +66,18 @@ class AuthRepositoryImplTest {
                         headers = headersOf("Content-Type" to listOf("application/json"))
                     )
                 }
+            }
+        }
+    }
+
+    private fun failingClient(error: Throwable): HttpClient {
+        return HttpClient(MockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+
+            engine {
+                addHandler { throw error }
             }
         }
     }
@@ -156,8 +172,9 @@ class AuthRepositoryImplTest {
         try {
             repo.register("A", "b@mail.com", "123")
             fail("Exception expected")
-        } catch (e: Exception) {
+        } catch (e: AppException) {
             assertEquals("User not found.", e.message)
+            assertTrue(e.error is AppError.NotFoundError)
         }
     }
 
@@ -169,8 +186,9 @@ class AuthRepositoryImplTest {
         try {
             repo.register("A", "b@mail.com", "123")
             fail("Exception expected")
-        } catch (e: Exception) {
+        } catch (e: AppException) {
             assertEquals("Incorrect password.", e.message)
+            assertTrue(e.error is AppError.UnauthorizedError)
         }
     }
 
@@ -182,7 +200,7 @@ class AuthRepositoryImplTest {
         try {
             repo.register("A", "b@mail.com", "123")
             fail("Exception expected")
-        } catch (e: Exception) {
+        } catch (e: AppException) {
             assertEquals("User with this email already exists", e.message)
         }
     }
@@ -195,7 +213,7 @@ class AuthRepositoryImplTest {
         try {
             repo.register("A", "b@mail.com", "123")
             fail("Exception expected")
-        } catch (e: Exception) {
+        } catch (e: AppException) {
             assertEquals("Invalid", e.message)
         }
     }
@@ -208,8 +226,36 @@ class AuthRepositoryImplTest {
         try {
             repo.register("A", "b@mail.com", "123")
             fail("Exception expected")
-        } catch (e: Exception) {
+        } catch (e: AppException) {
             assertEquals("Server error (500)", e.message)
+            assertTrue(e.error is AppError.ServerError)
+        }
+    }
+
+    @Test
+    fun `login network failure maps to app exception`() = runTest {
+        val repo = AuthRepositoryImpl(failingClient(IOException("Network down")), mockContext())
+
+        try {
+            repo.login("a@mail.com", "123456")
+            fail("Exception expected")
+        } catch (e: AppException) {
+            assertEquals("No internet connection.", e.message)
+            assertTrue(e.error is AppError.NetworkError)
+        }
+    }
+
+    @Test
+    fun `login unauthorized maps to app exception`() = runTest {
+        val client = mockClient(HttpStatusCode.Unauthorized, """{"error":"Incorrect password."}""")
+        val repo = AuthRepositoryImpl(client, mockContext())
+
+        try {
+            repo.login("a@mail.com", "123456")
+            fail("Exception expected")
+        } catch (e: AppException) {
+            assertEquals("Incorrect password.", e.message)
+            assertTrue(e.error is AppError.UnauthorizedError)
         }
     }
 
@@ -270,7 +316,7 @@ class AuthRepositoryImplTest {
                 )
             )
             fail("Exception expected")
-        } catch (e: Exception) {
+        } catch (e: AppException) {
             assertEquals("Invalid data", e.message)
         }
     }
