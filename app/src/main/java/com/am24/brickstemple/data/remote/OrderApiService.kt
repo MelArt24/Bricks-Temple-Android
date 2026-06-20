@@ -1,17 +1,17 @@
 package com.am24.brickstemple.data.remote
 
+import com.am24.brickstemple.data.error.toAppException
+import com.am24.brickstemple.data.error.toAppExceptionWithBody
 import com.am24.brickstemple.data.remote.util.NetworkConstants
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
-import io.ktor.client.plugins.ClientRequestException
-import io.ktor.client.statement.bodyAsText
-import java.io.IOException
 
 
 class OrderApiService(
@@ -70,37 +70,42 @@ class OrderApiService(
         val items: List<OrderItemResponse>
     )
 
+    private suspend inline fun <reified T> safeRequest(
+        defaultMessage: String,
+        crossinline block: suspend () -> HttpResponse
+    ): T {
+        try {
+            val response = block()
+            if (response.status.value !in 200..299) {
+                throw response.toAppExceptionWithBody(defaultMessage)
+            }
+            return response.body()
+        } catch (e: Throwable) {
+            throw e.toAppException(defaultMessage)
+        }
+    }
+
     suspend fun getMyOrders(): PagedResponse<OrderResponse> {
-        val response = client.get("$BASE_URL/me")
-        return response.body()
+        return safeRequest("Failed to load orders.") {
+            client.get("$BASE_URL/me")
+        }
     }
 
     suspend fun getOrderDetails(id: Int): OrderWithItemsResponse {
-        val response = client.get("$BASE_URL/$id")
-        return response.body()
+        return safeRequest("Failed to load order details.") {
+            client.get("$BASE_URL/$id")
+        }
     }
 
     suspend fun checkout(
         items: List<CreateOrderItemRequest>,
         totalPrice: Double
     ): CreatedOrderResponse {
-
-        val response = client.post(BASE_URL) {
-            contentType(ContentType.Application.Json)
-            setBody(CreateOrderRequest(items, totalPrice))
+        return safeRequest("Failed to checkout cart.") {
+            client.post(BASE_URL) {
+                contentType(ContentType.Application.Json)
+                setBody(CreateOrderRequest(items, totalPrice))
+            }
         }
-
-        if (response.status.value == 499) {
-            throw IOException("Offline")
-        }
-
-        if (response.status.value !in 200..299) {
-            val body = response.bodyAsText()
-            throw ClientRequestException(response, "Checkout failed: ${response.status} $body")
-        }
-
-        return response.body()
     }
-
-
 }
