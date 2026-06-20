@@ -167,15 +167,67 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `profile load failure exposes ui state error`() = runTest {
+    fun `profile load success updates profile state and auth session`() = runTest {
+        AuthSession.updateToken("token")
+
+        viewModel.loadCurrentUser()
+        advanceUntilIdle()
+
+        assertEquals("TestUser", viewModel.profileState.value.username)
+        assertEquals("a@mail.com", viewModel.profileState.value.email)
+        assertTrue(viewModel.profileState.value.isLoggedIn)
+        assertFalse(viewModel.profileState.value.isLoading)
+        assertNull(viewModel.profileState.value.errorMessage)
+        assertEquals(1, AuthSession.userId)
+        assertEquals("TestUser", AuthSession.username)
+        assertEquals("a@mail.com", AuthSession.email)
+    }
+
+    @Test
+    fun `profile load failure exposes profile state error`() = runTest {
         AuthSession.updateToken("token")
         repo.currentUserError = AppException(AppError.ServerError(userMessage = "Failed to load profile"))
 
         viewModel.loadCurrentUser()
         advanceUntilIdle()
 
-        assertEquals("Failed to load profile", viewModel.uiState.value.errorMessage)
-        assertFalse(viewModel.uiState.value.isLoading)
+        assertEquals("Failed to load profile", viewModel.profileState.value.errorMessage)
+        assertFalse(viewModel.profileState.value.isLoading)
     }
 
+    @Test
+    fun `loadCurrentUser when logged out sets profile state logged out`() = runTest {
+        viewModel.loadCurrentUser()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.profileState.value.isLoggedIn)
+        assertFalse(viewModel.profileState.value.isLoading)
+        assertNull(viewModel.profileState.value.errorMessage)
+    }
+
+    @Test
+    fun `logout clears auth session and resets auth states`() = runTest {
+        AuthSession.updateToken("token")
+        AuthSession.updateUserId(1)
+        AuthSession.updateUsername("TestUser")
+        AuthSession.updateEmail("a@mail.com")
+
+        viewModel.onLoginEmailChange("a@mail.com")
+        viewModel.onLoginPasswordChange("123456")
+        viewModel.login()
+        advanceUntilIdle()
+
+        viewModel.onRegisterUsernameChange("Artem")
+        viewModel.onRegisterEmailChange("artem@mail.com")
+        viewModel.onRegisterPasswordChange("123456")
+
+        viewModel.logout()
+
+        assertNull(AuthSession.token)
+        assertNull(AuthSession.username)
+        assertNull(AuthSession.email)
+        assertEquals(LoginUiState(), viewModel.loginState.value)
+        assertEquals(RegisterUiState(), viewModel.registerState.value)
+        assertEquals(ProfileUiState(), viewModel.profileState.value)
+    }
 }

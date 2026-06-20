@@ -12,12 +12,27 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class AuthFormState(
+data class LoginUiState(
+    val email: String = "",
+    val password: String = "",
+    val isLoading: Boolean = false,
+    val isSuccess: Boolean = false,
+    val errorMessage: String? = null
+)
+
+data class RegisterUiState(
     val username: String = "",
     val email: String = "",
     val password: String = "",
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
+    val errorMessage: String? = null
+)
+
+data class ProfileUiState(
+    val username: String = "",
+    val email: String = "",
+    val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val isLoggedIn: Boolean = false
 )
@@ -26,14 +41,14 @@ class AuthViewModel(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    private val _loginState = MutableStateFlow(AuthFormState())
-    val loginState: StateFlow<AuthFormState> = _loginState
+    private val _loginState = MutableStateFlow(LoginUiState())
+    val loginState: StateFlow<LoginUiState> = _loginState
 
-    private val _registerState = MutableStateFlow(AuthFormState())
-    val registerState: StateFlow<AuthFormState> = _registerState
+    private val _registerState = MutableStateFlow(RegisterUiState())
+    val registerState: StateFlow<RegisterUiState> = _registerState
 
-    private val _uiState = MutableStateFlow(AuthFormState())
-    val uiState: StateFlow<AuthFormState> = _uiState
+    private val _profileState = MutableStateFlow(ProfileUiState())
+    val profileState: StateFlow<ProfileUiState> = _profileState
 
     fun onLoginEmailChange(value: String) {
         _loginState.update { it.copy(email = value, errorMessage = null) }
@@ -145,12 +160,12 @@ class AuthViewModel(
 
     fun loadCurrentUser() {
         if (!AuthSession.isLoggedIn()) {
-            _uiState.value = AuthFormState(isLoggedIn = false)
+            _profileState.value = ProfileUiState(isLoggedIn = false)
             return
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _profileState.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
                 val me = authRepository.getCurrentUser()
@@ -159,7 +174,7 @@ class AuthViewModel(
                 AuthSession.updateEmail(me.email)
                 AuthSession.updateUserId(me.id)
 
-                _uiState.update {
+                _profileState.update {
                     it.copy(
                         isLoading = false,
                         username = me.username,
@@ -169,7 +184,7 @@ class AuthViewModel(
                 }
 
             } catch (e: Exception) {
-                _uiState.update {
+                _profileState.update {
                     it.copy(
                         isLoading = false,
                         errorMessage = mapError(e)
@@ -182,7 +197,7 @@ class AuthViewModel(
     fun logout() {
         AuthSession.clear()
 
-        _uiState.value = AuthFormState(
+        _profileState.value = ProfileUiState(
             username = "",
             email = "",
             isLoggedIn = false,
@@ -190,8 +205,8 @@ class AuthViewModel(
             errorMessage = null
         )
 
-        _loginState.value = AuthFormState()
-        _registerState.value = AuthFormState()
+        _loginState.value = LoginUiState()
+        _registerState.value = RegisterUiState()
     }
 
     fun changePassword(newPassword: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
