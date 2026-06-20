@@ -6,6 +6,9 @@ import io.ktor.client.HttpClient
 
 class FakeProductApiService(client: HttpClient) : ProductApiService(client) {
 
+    var failTypeRequests = false
+    var failProductByIdRequests = false
+
     val products = mutableListOf(
         ProductDto(
             id = 1,
@@ -40,14 +43,18 @@ class FakeProductApiService(client: HttpClient) : ProductApiService(client) {
         )
     )
 
-    override suspend fun getByType(type: String): List<ProductDto> =
-        products.filter { it.type == type }
+    override suspend fun getByType(type: String): List<ProductDto> {
+        if (failTypeRequests) error("Remote product type request failed")
+        return products.filter { it.type == type }
+    }
 
     override suspend fun getByCategory(category: String): List<ProductDto> =
         products.filter { it.category == category }
 
-    override suspend fun getProductById(id: Int): ProductDto =
-        products.first { it.id == id }
+    override suspend fun getProductById(id: Int): ProductDto {
+        if (failProductByIdRequests) error("Remote product detail request failed")
+        return products.first { it.id == id }
+    }
 
 
 }

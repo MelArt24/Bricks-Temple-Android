@@ -3,12 +3,14 @@ package com.am24.brickstemple.data.repository
 import com.am24.brickstemple.data.fakes.FakeProductApiService
 import com.am24.brickstemple.data.fakes.FakeProductDao
 import com.am24.brickstemple.data.mapper.toEntity
+import com.am24.brickstemple.domain.error.AppException
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -95,12 +97,35 @@ class ProductRepositoryTest {
     fun `getById returns cached product when API fails`() = runTest {
         dao.insert(api.products.first().toEntity())
 
-        // break API
-        api.products.clear() // ❗ only works if products = mutableList
+        api.failProductByIdRequests = true
 
         val product = repo.getById(1)
 
         assertEquals("Millennium Falcon", product.name)
+    }
+
+    @Test
+    fun `syncByType throws app exception when remote request fails`() = runTest {
+        api.failTypeRequests = true
+
+        try {
+            repo.syncByType("set")
+            assertTrue("Expected AppException", false)
+        } catch (e: AppException) {
+            assertTrue(e.message?.isNotBlank() == true)
+        }
+    }
+
+    @Test
+    fun `getById throws app exception when remote and cache fail`() = runTest {
+        api.failProductByIdRequests = true
+
+        try {
+            repo.getById(1)
+            assertTrue("Expected AppException", false)
+        } catch (e: AppException) {
+            assertEquals("Product not found locally or remotely.", e.message)
+        }
     }
 
 //    @Test
