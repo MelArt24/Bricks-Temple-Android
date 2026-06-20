@@ -17,6 +17,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -37,9 +38,9 @@ class OrderViewModelTest {
         viewModel.loadOrders()
         advanceUntilIdle()
 
-        assertEquals(listOf(order), viewModel.orders.value)
-        assertFalse(viewModel.loading.value)
-        assertNull(viewModel.errorMessage.value)
+        assertEquals(listOf(order), viewModel.historyState.value.orders)
+        assertFalse(viewModel.historyState.value.isLoading)
+        assertNull(viewModel.historyState.value.errorMessage)
     }
 
     @Test
@@ -56,9 +57,9 @@ class OrderViewModelTest {
         viewModel.loadOrders()
         advanceUntilIdle()
 
-        assertEquals(listOf(existingOrder), viewModel.orders.value)
-        assertEquals("No internet connection.", viewModel.errorMessage.value)
-        assertFalse(viewModel.loading.value)
+        assertEquals(listOf(existingOrder), viewModel.historyState.value.orders)
+        assertEquals("No internet connection.", viewModel.historyState.value.errorMessage)
+        assertFalse(viewModel.historyState.value.isLoading)
     }
 
     @Test
@@ -74,12 +75,12 @@ class OrderViewModelTest {
         viewModel.loadOrderDetails(7)
         advanceUntilIdle()
 
-        assertEquals(details, viewModel.orderDetails.value)
-        assertEquals(1, viewModel.orderDetailsFull.value.size)
-        assertEquals(item, viewModel.orderDetailsFull.value.first().item)
-        assertEquals(product, viewModel.orderDetailsFull.value.first().product)
-        assertFalse(viewModel.loading.value)
-        assertNull(viewModel.errorMessage.value)
+        assertEquals(details, viewModel.detailsState.value.details)
+        assertEquals(1, viewModel.detailsState.value.fullItems.size)
+        assertEquals(item, viewModel.detailsState.value.fullItems.first().item)
+        assertEquals(product, viewModel.detailsState.value.fullItems.first().product)
+        assertFalse(viewModel.detailsState.value.isLoading)
+        assertNull(viewModel.detailsState.value.errorMessage)
     }
 
     @Test
@@ -96,9 +97,9 @@ class OrderViewModelTest {
         viewModel.loadOrderDetails(1)
         advanceUntilIdle()
 
-        assertEquals(existingDetails, viewModel.orderDetails.value)
-        assertEquals("Failed to load order details.", viewModel.errorMessage.value)
-        assertFalse(viewModel.loading.value)
+        assertEquals(existingDetails, viewModel.detailsState.value.details)
+        assertEquals("Failed to load order details.", viewModel.detailsState.value.errorMessage)
+        assertFalse(viewModel.detailsState.value.isLoading)
     }
 
     @Test
@@ -111,8 +112,8 @@ class OrderViewModelTest {
         viewModel.loadOrders()
         advanceUntilIdle()
 
-        assertNull(viewModel.errorMessage.value)
-        assertFalse(viewModel.loading.value)
+        assertNull(viewModel.historyState.value.errorMessage)
+        assertFalse(viewModel.historyState.value.isLoading)
     }
 
     @Test
@@ -125,8 +126,73 @@ class OrderViewModelTest {
         viewModel.loadOrderDetails(7)
         advanceUntilIdle()
 
-        assertNull(viewModel.errorMessage.value)
-        assertFalse(viewModel.loading.value)
+        assertNull(viewModel.detailsState.value.errorMessage)
+        assertFalse(viewModel.detailsState.value.isLoading)
+    }
+
+    @Test
+    fun `loadOrders does not mutate details state`() = runTest {
+        val details = OrderDetails(order = order(id = 3), items = listOf(orderItem(productId = 22)))
+        val order = order(id = 9)
+        val viewModel = OrderViewModel(
+            repo = FakeOrderRepository(
+                orders = PagedResult(1, 10, 1, listOf(order)),
+                details = details
+            ),
+            productRepository = FakeProductRepository(products = mapOf(22 to product(id = 22)))
+        )
+
+        viewModel.loadOrderDetails(3)
+        advanceUntilIdle()
+
+        val existingDetailsState = viewModel.detailsState.value
+
+        viewModel.loadOrders()
+        advanceUntilIdle()
+
+        assertEquals(listOf(order), viewModel.historyState.value.orders)
+        assertEquals(existingDetailsState.details, viewModel.detailsState.value.details)
+        assertEquals(existingDetailsState.fullItems, viewModel.detailsState.value.fullItems)
+        assertFalse(viewModel.detailsState.value.isLoading)
+        assertNull(viewModel.detailsState.value.errorMessage)
+    }
+
+    @Test
+    fun `loadOrderDetails does not mutate history state`() = runTest {
+        val existingOrder = order(id = 4)
+        val details = OrderDetails(order = order(id = 7), items = listOf(orderItem(productId = 22)))
+        val viewModel = OrderViewModel(
+            repo = FakeOrderRepository(
+                orders = PagedResult(1, 10, 1, listOf(existingOrder)),
+                details = details
+            ),
+            productRepository = FakeProductRepository(products = mapOf(22 to product(id = 22)))
+        )
+
+        viewModel.loadOrders()
+        advanceUntilIdle()
+
+        val existingHistoryState = viewModel.historyState.value
+
+        viewModel.loadOrderDetails(7)
+        advanceUntilIdle()
+
+        assertEquals(details, viewModel.detailsState.value.details)
+        assertEquals(existingHistoryState.orders, viewModel.historyState.value.orders)
+        assertFalse(viewModel.historyState.value.isLoading)
+        assertNull(viewModel.historyState.value.errorMessage)
+    }
+
+    @Test
+    fun `initial states are independent`() {
+        val viewModel = OrderViewModel(
+            repo = FakeOrderRepository(),
+            productRepository = FakeProductRepository()
+        )
+
+        assertTrue(viewModel.historyState.value.orders.isEmpty())
+        assertNull(viewModel.detailsState.value.details)
+        assertTrue(viewModel.detailsState.value.fullItems.isEmpty())
     }
 
     private class FakeOrderRepository(

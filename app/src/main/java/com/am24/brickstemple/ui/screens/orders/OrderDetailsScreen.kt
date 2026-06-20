@@ -25,10 +25,7 @@ fun OrderDetailsScreen(
         return
     }
 
-    val loading by viewModel.loading.collectAsState()
-    val details by viewModel.orderDetails.collectAsState()
-
-    val fullItems by viewModel.orderDetailsFull.collectAsState()
+    val state by viewModel.detailsState.collectAsState()
 
     LaunchedEffect(orderId) {
         viewModel.loadOrderDetails(orderId)
@@ -42,14 +39,14 @@ fun OrderDetailsScreen(
     ) {
 
         when {
-            loading -> Box(
+            state.isLoading -> Box(
                 Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
 
-            details == null -> Box(
+            state.details == null -> Box(
                 Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
@@ -57,7 +54,7 @@ fun OrderDetailsScreen(
             }
 
             else -> {
-                val order = details!!.order
+                val order = state.details!!.order
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -95,7 +92,7 @@ fun OrderDetailsScreen(
                         Text("Items", style = MaterialTheme.typography.titleMedium)
                     }
 
-                    items(fullItems) { full ->
+                    items(state.fullItems) { full ->
                         OrderItemCard(
                             name = full.product?.name ?: "Unknown product",
                             image = full.product?.image ?: "",

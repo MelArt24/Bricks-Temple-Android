@@ -34,8 +34,7 @@ fun OrderHistoryScreen(
     viewModel: OrderViewModel,
     paddingValues: PaddingValues
 ) {
-    val loading by viewModel.loading.collectAsState()
-    val orders by viewModel.orders.collectAsState()
+    val state by viewModel.historyState.collectAsState()
 
     LaunchedEffect(Unit) { viewModel.loadOrders() }
 
@@ -46,14 +45,14 @@ fun OrderHistoryScreen(
     ) {
 
         when {
-            loading -> Box(
+            state.isLoading -> Box(
                 Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
 
-            orders.isEmpty() -> Box(
+            state.orders.isEmpty() -> Box(
                 Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
@@ -61,7 +60,7 @@ fun OrderHistoryScreen(
             }
 
             else -> {
-                val sorted = orders.sortedByDescending { it.createdAt }
+                val sorted = state.orders.sortedByDescending { it.createdAt }
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
