@@ -14,6 +14,8 @@ class FakeWishlistApiService : WishlistApiService(
 ) {
 
     var serverItems: MutableList<Triple<Int, Int, Int>> = mutableListOf()
+    var failGetWishlist = false
+    var failClearWishlist = false
 
     val added = mutableListOf<Int>()
     val removed = mutableListOf<Int>()
@@ -21,6 +23,8 @@ class FakeWishlistApiService : WishlistApiService(
     val updated = mutableListOf<Pair<Int, Int>>()
 
     override suspend fun getWishlist(): WishlistResponse {
+        if (failGetWishlist) error("Remote wishlist request failed")
+
         return WishlistResponse(
             wishlist = WishlistDto(
                 id = 1,
@@ -65,6 +69,8 @@ class FakeWishlistApiService : WishlistApiService(
     }
 
     override suspend fun clearWishlist() {
+        if (failClearWishlist) error("Remote clear wishlist request failed")
+
         serverItems.clear()
     }
 

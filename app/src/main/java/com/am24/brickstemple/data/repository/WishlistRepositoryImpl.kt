@@ -1,5 +1,6 @@
 package com.am24.brickstemple.data.repository
 
+import com.am24.brickstemple.data.error.toAppException
 import com.am24.brickstemple.data.mapper.toDomain
 import com.am24.brickstemple.data.remote.WishlistApiService
 import com.am24.brickstemple.domain.model.WishlistItem
@@ -41,10 +42,12 @@ open class WishlistRepositoryImpl(
         try {
             val response = api.getWishlist()
 
-            _wishlist.value = response?.items?.associate { it.productId to it.id!! } ?: emptyMap()
-            _items.value = response?.items?.map { it.toDomain() } ?: emptyList()
+            _wishlist.value = response.items.associate { it.productId to it.id!! }
+            _items.value = response.items.map { it.toDomain() }
 
             _isLoaded.value = true
+        } catch (e: Exception) {
+            throw e.toAppException("Failed to refresh wishlist.")
         } finally {
             _isLoading.value = false
         }
@@ -52,14 +55,22 @@ open class WishlistRepositoryImpl(
 
     override suspend fun removeCompletely(productId: Int) = withContext(dispatcher) {
         val id = _wishlist.value[productId] ?: return@withContext
-        api.removeItem(id)
-        refresh()
+        try {
+            api.removeItem(id)
+            refresh()
+        } catch (e: Exception) {
+            throw e.toAppException("Failed to remove wishlist item.")
+        }
     }
 
     override suspend fun removeOne(productId: Int) = withContext(dispatcher) {
         val id = _wishlist.value[productId] ?: return@withContext
-        api.removeOneItem(id)
-        refresh()
+        try {
+            api.removeOneItem(id)
+            refresh()
+        } catch (e: Exception) {
+            throw e.toAppException("Failed to update wishlist item.")
+        }
     }
 
     override fun toggle(productId: Int) {
@@ -90,10 +101,20 @@ open class WishlistRepositoryImpl(
             if (productId in current.keys) {
                 val itemId = current[productId]!!
                 _wishlist.value = current - productId
-                api.removeItem(itemId)
+                try {
+                    api.removeItem(itemId)
+                } catch (e: Exception) {
+                    _wishlist.value = current
+                    throw e.toAppException("Failed to remove wishlist item.")
+                }
             } else {
                 _wishlist.value = current + (productId to -1)
-                api.addItem(productId)
+                try {
+                    api.addItem(productId)
+                } catch (e: Exception) {
+                    _wishlist.value = current
+                    throw e.toAppException("Failed to add wishlist item.")
+                }
             }
 
         } finally {
@@ -105,8 +126,12 @@ open class WishlistRepositoryImpl(
         _items.value.firstOrNull { it.productId == productId }
 
     override suspend fun updateQuantity(itemId: Int, newQuantity: Int) = withContext(dispatcher) {
-        api.updateQuantity(itemId, newQuantity)
-        refresh()
+        try {
+            api.updateQuantity(itemId, newQuantity)
+            refresh()
+        } catch (e: Exception) {
+            throw e.toAppException("Failed to update wishlist quantity.")
+        }
     }
 
     override fun clearLocal() {
@@ -122,9 +147,11 @@ open class WishlistRepositoryImpl(
         _isClearing.value = true
 
         try {
-            try { api.clearWishlist() } catch (_: Exception) {}
+            api.clearWishlist()
             _wishlist.value = emptyMap()
             _items.value = emptyList()
+        } catch (e: Exception) {
+            throw e.toAppException("Failed to clear wishlist.")
         } finally {
             _isClearing.value = false
         }

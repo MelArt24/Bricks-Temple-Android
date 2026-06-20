@@ -1,6 +1,7 @@
 package com.am24.brickstemple.data.repository
 
 import com.am24.brickstemple.data.fakes.FakeWishlistApiService
+import com.am24.brickstemple.domain.error.AppException
 import com.am24.brickstemple.domain.model.WishlistItem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -41,6 +42,22 @@ class WishlistRepositoryTest {
             mapOf(10 to 1, 20 to 2),
             repo.wishlist.value
         )
+    }
+
+    @Test
+    fun `refresh maps remote failure to app exception and clears loading`() = runTest(dispatcher) {
+        api.failGetWishlist = true
+
+        try {
+            repo.refresh()
+            advanceUntilIdle()
+            assertTrue("Expected AppException", false)
+        } catch (e: AppException) {
+            assertEquals("Remote wishlist request failed", e.message)
+        }
+
+        assertFalse(repo.isLoading.value)
+        assertFalse(repo.isLoaded.value)
     }
 
     @Test
@@ -266,6 +283,31 @@ class WishlistRepositoryTest {
         assertTrue(repo.wishlist.value.isEmpty())
         assertTrue(repo.items.value.isEmpty())
 
+        assertFalse(repo.isClearing.value)
+    }
+
+    @Test
+    fun `clearWishlist preserves local state when remote clear fails`() = runTest(dispatcher) {
+        val existingWishlist = mapOf(10 to 1, 20 to 2)
+        val existingItems = listOf(
+            WishlistItem(id = 1, wishlistId = 1, productId = 10, quantity = 1),
+            WishlistItem(id = 2, wishlistId = 1, productId = 20, quantity = 2)
+        )
+
+        repo._wishlist.value = existingWishlist
+        repo._items.value = existingItems
+        api.failClearWishlist = true
+
+        try {
+            repo.clearWishlist()
+            advanceUntilIdle()
+            assertTrue("Expected AppException", false)
+        } catch (e: AppException) {
+            assertEquals("Remote clear wishlist request failed", e.message)
+        }
+
+        assertEquals(existingWishlist, repo.wishlist.value)
+        assertEquals(existingItems, repo.items.value)
         assertFalse(repo.isClearing.value)
     }
 
