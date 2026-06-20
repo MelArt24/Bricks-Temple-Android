@@ -2,10 +2,12 @@ package com.am24.brickstemple.ui.screens.cart
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.am24.brickstemple.domain.error.AppError
+import com.am24.brickstemple.domain.error.AppException
 import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.domain.repository.CartRepository
 import com.am24.brickstemple.domain.repository.ProductRepository
-import io.ktor.client.plugins.ClientRequestException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -33,6 +35,9 @@ class CartViewModel(
     private val _unauthorized = MutableStateFlow(false)
     val unauthorized = _unauthorized.asStateFlow()
 
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage = _errorMessage.asStateFlow()
+
     private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products = _products.asStateFlow()
 
@@ -42,7 +47,9 @@ class CartViewModel(
                 repo.refresh()
                 val productIds = repo.cart.value.keys.toList()
                 _products.value = productRepository.getCachedByIds(productIds)
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                handleError(e)
+            }
         }
     }
 
@@ -50,25 +57,21 @@ class CartViewModel(
         _unauthorized.value = false
     }
 
+    fun clearError() {
+        _errorMessage.value = null
+    }
+
     fun checkout() {
         viewModelScope.launch {
             _checkoutInProgress.value = true
+            _errorMessage.value = null
 
             try {
                 val orderId = repo.checkout()
                 _checkoutResult.value = orderId
 
-            } catch (e: ClientRequestException) {
-                if (e.response.status.value == 401) {
-                    _unauthorized.value = true
-                } else {
-                    e.printStackTrace()
-                }
-
-
             } catch (e: Exception) {
-                e.printStackTrace()
-
+                handleError(e)
             } finally {
                 _checkoutInProgress.value = false
             }
@@ -78,28 +81,44 @@ class CartViewModel(
 
     fun refresh() {
         viewModelScope.launch {
-            repo.refresh()
-            val productIds = repo.cart.value.keys.toList()
-            _products.value = productRepository.getCachedByIds(productIds)
+            try {
+                repo.refresh()
+                val productIds = repo.cart.value.keys.toList()
+                _products.value = productRepository.getCachedByIds(productIds)
+            } catch (e: Exception) {
+                handleError(e)
+            }
         }
     }
 
     fun loadProducts() {
         viewModelScope.launch {
-            val productIds = repo.cart.value.keys.toList()
-            _products.value = productRepository.getCachedByIds(productIds)
+            try {
+                val productIds = repo.cart.value.keys.toList()
+                _products.value = productRepository.getCachedByIds(productIds)
+            } catch (e: Exception) {
+                handleError(e)
+            }
         }
     }
 
     fun toggle(productId: Int) {
         viewModelScope.launch {
-            repo.toggle(productId)
+            try {
+                repo.toggle(productId)
+            } catch (e: Exception) {
+                handleError(e)
+            }
         }
     }
 
     fun addProduct(productId: Int) {
         viewModelScope.launch {
-            repo.add(productId)
+            try {
+                repo.add(productId)
+            } catch (e: Exception) {
+                handleError(e)
+            }
         }
     }
 
@@ -115,6 +134,8 @@ class CartViewModel(
                     newQty <= 0 -> repo.removeCompletely(productId)
                     else -> repo.updateQuantity(productId, newQty)
                 }
+            } catch (e: Exception) {
+                handleError(e)
             } finally {
                 _updatingQuantity.value = null
             }
@@ -123,13 +144,21 @@ class CartViewModel(
 
     fun removeCompletely(productId: Int) {
         viewModelScope.launch {
-            repo.removeCompletely(productId)
+            try {
+                repo.removeCompletely(productId)
+            } catch (e: Exception) {
+                handleError(e)
+            }
         }
     }
 
     fun clearCart() {
         viewModelScope.launch {
-            repo.clearCart()
+            try {
+                repo.clearCart()
+            } catch (e: Exception) {
+                handleError(e)
+            }
         }
     }
 
@@ -142,6 +171,21 @@ class CartViewModel(
         viewModelScope.launch {
             repo.clearLocal()
             _updatingQuantity.value = null
+            _errorMessage.value = null
         }
+    }
+
+    private fun handleError(error: Exception) {
+        if (error is CancellationException) throw error
+
+        val appException = error as? AppException
+        if (appException?.error is AppError.UnauthorizedError) {
+            _unauthorized.value = true
+            return
+        }
+
+        _errorMessage.value = appException?.error?.userMessage
+            ?: error.message
+            ?: "Unexpected error occurred."
     }
 }

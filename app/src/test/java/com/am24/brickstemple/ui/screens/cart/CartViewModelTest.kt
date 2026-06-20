@@ -1,6 +1,8 @@
 package com.am24.brickstemple.ui.screens.cart
 
 import com.am24.brickstemple.MainDispatcherRule
+import com.am24.brickstemple.domain.error.AppError
+import com.am24.brickstemple.domain.error.AppException
 import com.am24.brickstemple.domain.repository.CartRepository
 import com.am24.brickstemple.domain.repository.ProductRepository
 import io.mockk.coEvery
@@ -54,6 +56,46 @@ class CartViewModelTest {
         coVerify(exactly = 1) { repo.checkout() }
         assertEquals(123, viewModel.checkoutResult.value)
         assertFalse(viewModel.checkoutInProgress.value)
+    }
+
+    @Test
+    fun `checkout failure exposes error message and resets progress`() {
+        coEvery { repo.checkout() } throws AppException(
+            AppError.ServerError(userMessage = "Checkout failed")
+        )
+
+        viewModel.checkout()
+
+        assertEquals("Checkout failed", viewModel.errorMessage.value)
+        assertFalse(viewModel.checkoutInProgress.value)
+        assertNull(viewModel.checkoutResult.value)
+    }
+
+    @Test
+    fun `checkout unauthorized sets unauthorized without error message`() {
+        coEvery { repo.checkout() } throws AppException(AppError.UnauthorizedError())
+
+        viewModel.checkout()
+
+        assertTrue(viewModel.unauthorized.value)
+        assertNull(viewModel.errorMessage.value)
+        assertFalse(viewModel.checkoutInProgress.value)
+    }
+
+    @Test
+    fun `checkout failure does not clear cart state`() {
+        val cartState = MutableStateFlow(mapOf(5 to 2))
+        every { repo.cart } returns cartState
+
+        viewModel = CartViewModel(repo, productRepository)
+
+        coEvery { repo.checkout() } throws AppException(
+            AppError.NetworkError("No internet connection.")
+        )
+
+        viewModel.checkout()
+
+        assertEquals(mapOf(5 to 2), viewModel.cart.value)
     }
 
     @Test

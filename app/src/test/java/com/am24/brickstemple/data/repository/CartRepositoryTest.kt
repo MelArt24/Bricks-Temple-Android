@@ -5,10 +5,12 @@ import com.am24.brickstemple.data.local.dao.ProductDao
 import com.am24.brickstemple.data.local.entities.CartItemEntity
 import com.am24.brickstemple.data.local.entities.ProductEntity
 import com.am24.brickstemple.data.remote.OrderApiService
+import com.am24.brickstemple.domain.error.AppException
 import io.mockk.*
 import junit.framework.TestCase.assertEquals
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Test
 
@@ -42,6 +44,20 @@ class CartRepositoryTest {
         repo.refresh()
 
         assertEquals(mapOf(10 to 2), repo.cart.value)
+    }
+
+    @Test
+    fun `refresh maps dao failure to app exception and resets loading`() = runBlocking {
+        coEvery { cartDao.getAll() } throws RuntimeException("DB unavailable")
+
+        try {
+            repo.refresh()
+            throw AssertionError("Expected AppException")
+        } catch (e: AppException) {
+            assertEquals("DB unavailable", e.message)
+        }
+
+        assertFalse(repo.isLoading.value)
     }
 
     @Test
@@ -199,5 +215,46 @@ class CartRepositoryTest {
 
         assertEquals(123, result)
         assertEquals(emptyMap<Int, Int>(), repo.cart.value)
+    }
+
+    @Test
+    fun `checkout failure maps to app exception and preserves cart state`() = runBlocking {
+        val cartItems = listOf(
+            CartItemEntity(id = 1, productId = 5, quantity = 2)
+        )
+
+        coEvery { cartDao.getAll() } returns cartItems
+        coEvery { productDao.getById(5) } returns ProductEntity(
+            id = 5,
+            name = "Test",
+            category = null,
+            number = null,
+            details = null,
+            minifigures = null,
+            age = null,
+            year = null,
+            size = null,
+            condition = null,
+            price = 100.0,
+            createdAt = null,
+            image = null,
+            description = null,
+            type = "set",
+            keywords = null,
+            isAvailable = true
+        )
+        coEvery { api.checkout(any(), any()) } throws RuntimeException("Checkout failed")
+
+        repo.refresh()
+
+        try {
+            repo.checkout()
+            throw AssertionError("Expected AppException")
+        } catch (e: AppException) {
+            assertEquals("Checkout failed", e.message)
+        }
+
+        assertEquals(mapOf(5 to 2), repo.cart.value)
+        coVerify(exactly = 0) { cartDao.clear() }
     }
 }
