@@ -1,7 +1,6 @@
 package com.am24.brickstemple.ui.screens.wishlist
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.domain.repository.ProductRepository
@@ -85,16 +84,6 @@ class WishlistViewModel(
     fun clearWishlist() {
         viewModelScope.launch {
             repo.clearWishlist()
-        }
-    }
-
-    class Factory(
-        private val repo: WishlistRepository,
-        private val productRepository: ProductRepository
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return WishlistViewModel(repo, productRepository) as T
         }
     }
 }

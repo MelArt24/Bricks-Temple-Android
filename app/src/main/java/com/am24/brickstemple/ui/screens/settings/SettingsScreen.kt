@@ -12,24 +12,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.am24.brickstemple.data.local.ThemePreferenceDataStore
 import com.am24.brickstemple.ui.navigation.Screen
-import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun SettingsScreen(
     paddingValues: PaddingValues = PaddingValues(),
     navController: NavController? = null,
 ) {
-    val context = LocalContext.current
-
-    val themeStore = remember { ThemePreferenceDataStore(context) }
-    val isDark by themeStore.isDarkMode.collectAsState(initial = false)
-
-    val scope = rememberCoroutineScope()
+    val themeViewModel: ThemeViewModel = koinViewModel()
+    val isDark by themeViewModel.isDarkMode.collectAsState()
 
     Column(
         modifier = Modifier
@@ -100,9 +94,7 @@ fun SettingsScreen(
                     Switch(
                         checked = isDark,
                         onCheckedChange = { enabled ->
-                            scope.launch {
-                                themeStore.setDarkMode(enabled)
-                            }
+                            themeViewModel.toggleTheme(enabled)
                         }
                     )
                 }

@@ -1,7 +1,6 @@
 package com.am24.brickstemple.ui.screens.product
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.domain.repository.ProductRepository
@@ -208,19 +207,6 @@ class ProductViewModel(
             } catch (e: Exception) {
                 _filteredProducts.value = ProductUiState(error = e.message)
             }
-        }
-    }
-
-
-    class Factory(
-        private val repo: ProductRepository
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            if (modelClass.isAssignableFrom(ProductViewModel::class.java)) {
-                return ProductViewModel(repo) as T
-            }
-            throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
 }

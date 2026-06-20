@@ -1,12 +1,8 @@
 package com.am24.brickstemple.ui.screens.auth
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.am24.brickstemple.data.auth.AuthSession
-import com.am24.brickstemple.data.remote.KtorClientProvider
-import com.am24.brickstemple.data.repository.AuthRepositoryImpl
 import com.am24.brickstemple.domain.model.UpdateUser
 import com.am24.brickstemple.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -221,26 +217,6 @@ class AuthViewModel(
             } catch (e: Exception) {
                 onError(e.message ?: "Failed to update password")
             }
-        }
-    }
-
-
-
-
-
-    class AuthViewModelFactory(
-        private val context: Context
-    ) : ViewModelProvider.Factory {
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            if (modelClass.isAssignableFrom(AuthViewModel::class.java)) {
-                val repo = AuthRepositoryImpl(
-                    client = KtorClientProvider.client,
-                    appContext = context
-                )
-                @Suppress("UNCHECKED_CAST")
-                return AuthViewModel(repo) as T
-            }
-            throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
 }

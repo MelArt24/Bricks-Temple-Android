@@ -1,7 +1,6 @@
 package com.am24.brickstemple.ui.screens.orders
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.am24.brickstemple.domain.model.Order
 import com.am24.brickstemple.domain.model.OrderDetails
@@ -14,7 +13,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class OrderViewModel(
-    private val repo: OrderRepository
+    private val repo: OrderRepository,
+    private val productRepository: ProductRepository
 ) : ViewModel() {
 
     private val _orders = MutableStateFlow<List<Order>>(emptyList())
@@ -34,7 +34,7 @@ class OrderViewModel(
         val product: Product?
     )
 
-    fun loadOrderDetailsFull(productRepository: ProductRepository) {
+    fun loadOrderDetailsFull() {
         viewModelScope.launch {
             val details = orderDetails.value ?: return@launch
 
@@ -62,27 +62,18 @@ class OrderViewModel(
         }
     }
 
-    fun loadOrderDetails(id: Int, productRepository: ProductRepository) {
+    fun loadOrderDetails(id: Int) {
         viewModelScope.launch {
             _loading.value = true
             try {
                 val detail = repo.getOrderDetails(id)
                 _orderDetails.value = detail
 
-                loadOrderDetailsFull(productRepository)
+                loadOrderDetailsFull()
 
             } finally {
                 _loading.value = false
             }
-        }
-    }
-
-    class Factory(
-        private val repo: OrderRepository
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return OrderViewModel(repo) as T
         }
     }
 }

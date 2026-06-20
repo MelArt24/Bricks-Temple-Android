@@ -24,7 +24,6 @@ import com.am24.brickstemple.ui.screens.cart.CartViewModel
 import com.am24.brickstemple.ui.screens.orders.OrderViewModel
 import com.am24.brickstemple.ui.screens.product.ProductViewModel
 import com.am24.brickstemple.ui.screens.wishlist.WishlistViewModel
-import com.am24.brickstemple.domain.repository.ProductRepository
 
 object AppNavGraphCallbacks {
     var openSort: () -> Unit = {}
@@ -40,7 +39,6 @@ fun AppNavGraph(
     wishlistViewModel: WishlistViewModel,
     cartViewModel: CartViewModel,
     orderViewModel: OrderViewModel,
-    productRepository: ProductRepository,
     openSort: () -> Unit,
     openFilters: () -> Unit,
 
@@ -141,7 +139,6 @@ fun AppNavGraph(
             OrderDetailsScreen(
                 orderId = id,
                 viewModel = orderViewModel,
-                productRepository = productRepository,
                 paddingValues = paddingValues
             )
         }

@@ -127,6 +127,9 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
+    implementation("io.insert-koin:koin-android:4.0.4")
+    implementation("io.insert-koin:koin-androidx-compose:4.0.4")
+
     testImplementation("io.ktor:ktor-client-mock:2.3.9")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation(libs.junit)

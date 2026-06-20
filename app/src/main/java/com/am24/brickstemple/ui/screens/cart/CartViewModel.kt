@@ -1,7 +1,6 @@
 package com.am24.brickstemple.ui.screens.cart
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.domain.repository.CartRepository
@@ -143,16 +142,6 @@ class CartViewModel(
         viewModelScope.launch {
             repo.clearLocal()
             _updatingQuantity.value = null
-        }
-    }
-
-    class Factory(
-        private val repo: CartRepository,
-        private val productRepository: ProductRepository
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return CartViewModel(repo, productRepository) as T
         }
     }
 }
