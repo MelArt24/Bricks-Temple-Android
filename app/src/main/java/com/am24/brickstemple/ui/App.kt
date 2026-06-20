@@ -35,6 +35,7 @@ import com.am24.brickstemple.ui.screens.orders.OrderViewModel
 import com.am24.brickstemple.ui.screens.product.ProductViewModel
 import com.am24.brickstemple.ui.screens.settings.ThemeViewModel
 import com.am24.brickstemple.ui.screens.wishlist.WishlistViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -96,10 +97,18 @@ fun App() {
 
                 delay(300)
 
-                try { wishlistViewModel.refresh() } catch (_: Exception) {}
+                try {
+                    wishlistViewModel.refresh()
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                }
 
                 if (AuthSession.isLoggedIn()) {
-                    try { authViewModel.loadCurrentUser() } catch (_: Exception) {}
+                    try {
+                        authViewModel.loadCurrentUser()
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                    }
                 }
             }
         }

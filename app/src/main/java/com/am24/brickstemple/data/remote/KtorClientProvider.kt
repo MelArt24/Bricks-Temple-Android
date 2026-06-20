@@ -11,6 +11,7 @@ import io.ktor.client.request.header
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -176,6 +177,8 @@ object KtorClientProvider {
                             return@launch
                         }
                     }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (_: Exception) { }
 
                 delay(1500)

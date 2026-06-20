@@ -52,7 +52,7 @@ class OrderViewModel(
                 }
 
                 _orderDetailsFull.value = result
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 _errorMessage.value = e.toUserMessage()
             }
         }
@@ -66,7 +66,7 @@ class OrderViewModel(
                 _errorMessage.value = null
                 val resp = repo.getMyOrders()
                 _orders.value = resp.data
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 _errorMessage.value = e.toUserMessage()
             } finally {
                 _loading.value = false
@@ -84,7 +84,7 @@ class OrderViewModel(
 
                 loadOrderDetailsFull()
 
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 _errorMessage.value = e.toUserMessage()
             } finally {
                 _loading.value = false
@@ -92,7 +92,7 @@ class OrderViewModel(
         }
     }
 
-    private fun Throwable.toUserMessage(): String {
+    private fun Exception.toUserMessage(): String {
         if (this is CancellationException) throw this
         return (this as? AppException)?.error?.userMessage
             ?: message

@@ -2,8 +2,10 @@ package com.am24.brickstemple.ui.screens.product
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.am24.brickstemple.domain.error.AppException
 import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.domain.repository.ProductRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -73,8 +75,8 @@ class ProductViewModel(
 
             try {
                 repo.refreshAllTypesParallel()
-            } catch (_: Exception) {
-
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
             } finally {
                 loadLocalCache()
                 _loading.value = false
@@ -118,7 +120,7 @@ class ProductViewModel(
                 val result = repo.searchLocal(query)
                 _searchResult.value = ProductUiState(products = result)
             } catch (e: Exception) {
-                _searchResult.value = ProductUiState(error = e.message)
+                _searchResult.value = ProductUiState(error = e.toUserMessage())
             }
         }
     }
@@ -139,7 +141,7 @@ class ProductViewModel(
                 _productById.value = ProductUiState(products = listOf(updated))
 
             } catch (e: Exception) {
-                _productById.value = ProductUiState(error = e.message)
+                _productById.value = ProductUiState(error = e.toUserMessage())
             }
         }
     }
@@ -205,8 +207,14 @@ class ProductViewModel(
 
                 _filteredProducts.value = ProductUiState(products = sorted)
             } catch (e: Exception) {
-                _filteredProducts.value = ProductUiState(error = e.message)
+                _filteredProducts.value = ProductUiState(error = e.toUserMessage())
             }
         }
+    }
+
+    private fun Exception.toUserMessage(): String {
+        if (this is CancellationException) throw this
+        return (this as? AppException)?.error?.userMessage
+            ?: "Unexpected error occurred."
     }
 }

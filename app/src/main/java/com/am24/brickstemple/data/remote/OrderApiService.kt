@@ -80,7 +80,7 @@ class OrderApiService(
                 throw response.toAppExceptionWithBody(defaultMessage)
             }
             return response.body()
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             throw e.toAppException(defaultMessage)
         }
     }

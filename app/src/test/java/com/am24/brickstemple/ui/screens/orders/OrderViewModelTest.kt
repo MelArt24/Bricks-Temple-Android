@@ -12,6 +12,7 @@ import com.am24.brickstemple.domain.repository.OrderRepository
 import com.am24.brickstemple.domain.repository.ProductRepository
 import junit.framework.TestCase.assertEquals
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertFalse
@@ -19,6 +20,7 @@ import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class OrderViewModelTest {
 
     @get:Rule
@@ -107,6 +109,20 @@ class OrderViewModelTest {
         )
 
         viewModel.loadOrders()
+        advanceUntilIdle()
+
+        assertNull(viewModel.errorMessage.value)
+        assertFalse(viewModel.loading.value)
+    }
+
+    @Test
+    fun `loadOrderDetails cancellation does not expose error message`() = runTest {
+        val viewModel = OrderViewModel(
+            repo = FakeOrderRepository(detailsError = CancellationException("Cancelled")),
+            productRepository = FakeProductRepository()
+        )
+
+        viewModel.loadOrderDetails(7)
         advanceUntilIdle()
 
         assertNull(viewModel.errorMessage.value)

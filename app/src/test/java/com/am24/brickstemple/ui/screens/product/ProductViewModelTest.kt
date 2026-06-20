@@ -5,8 +5,11 @@ import com.am24.brickstemple.data.fakes.FakeProductApiService
 import com.am24.brickstemple.data.fakes.FakeProductDao
 import com.am24.brickstemple.data.fakes.FakeProductRepository
 import com.am24.brickstemple.data.repository.ProductRepositoryImpl
+import com.am24.brickstemple.domain.error.AppError
+import com.am24.brickstemple.domain.error.AppException
 import com.am24.brickstemple.domain.repository.ProductRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import io.ktor.client.HttpClient
@@ -108,6 +111,58 @@ class ProductViewModelTest {
         assertTrue(state.products.isEmpty())
         assertNotNull(state.error)
         assertFalse(state.isLoading)
+    }
+
+    @Test
+    fun `loadById app exception exposes user-facing message`() = runTest {
+        val repo = FakeProductRepository()
+        repo.getByIdError = AppException(AppError.NetworkError())
+
+        val vm = ProductViewModel(repo)
+
+        vm.loadById(1)
+        advanceUntilIdle()
+
+        assertEquals("No internet connection.", vm.productById.value.error)
+    }
+
+    @Test
+    fun `search raw failure exposes fallback message`() = runTest {
+        val repo = FakeProductRepository()
+        repo.searchLocalError = RuntimeException("Raw database details")
+
+        val vm = ProductViewModel(repo)
+
+        vm.search("Falcon")
+        advanceUntilIdle()
+
+        assertEquals("Unexpected error occurred.", vm.searchResult.value.error)
+    }
+
+    @Test
+    fun `applyFilters app exception exposes user-facing message`() = runTest {
+        val repo = FakeProductRepository()
+        repo.getFilteredError = AppException(AppError.ServerError(userMessage = "Failed to filter products."))
+
+        val vm = ProductViewModel(repo)
+
+        vm.applyFilters(type = "set", minPrice = null, maxPrice = null, year = null)
+        advanceUntilIdle()
+
+        assertEquals("Failed to filter products.", vm.filteredProducts.value.error)
+    }
+
+    @Test
+    fun `loadById cancellation does not expose error message`() = runTest {
+        val repo = FakeProductRepository()
+        repo.getByIdError = CancellationException("Cancelled")
+
+        val vm = ProductViewModel(repo)
+
+        vm.loadById(1)
+        advanceUntilIdle()
+
+        assertNull(vm.productById.value.error)
     }
 
     @Test

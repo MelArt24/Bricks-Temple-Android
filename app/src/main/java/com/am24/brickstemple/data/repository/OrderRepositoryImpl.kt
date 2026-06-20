@@ -12,13 +12,13 @@ class OrderRepositoryImpl(
 
     override suspend fun getMyOrders() = try {
         api.getMyOrders().mapData { it.toDomain() }
-    } catch (e: Throwable) {
+    } catch (e: Exception) {
         throw e.toAppException("Failed to load orders.")
     }
 
     override suspend fun getOrderDetails(id: Int) = try {
         api.getOrderDetails(id).toDomain()
-    } catch (e: Throwable) {
+    } catch (e: Exception) {
         throw e.toAppException("Failed to load order details.")
     }
 }
