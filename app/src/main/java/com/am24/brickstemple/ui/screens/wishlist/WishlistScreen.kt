@@ -144,7 +144,7 @@ fun WishlistScreen(
                                         wishlistViewModel.updateQuantity(p.id, -1)
                                 },
                                 onRemove = {
-                                    wishlistViewModel.toggle(p.id)
+                                    wishlistViewModel.removeCompletely(p.id)
                                 },
                                 onAddToCart = {
                                     requireLogin(navController) {
