@@ -23,8 +23,8 @@ class WishlistViewModel(
     val isLoading = repo.isLoading
     val loaded = repo.isLoaded
 
-    private val _updatingQuantity = MutableStateFlow<Int?>(null)
-    val updatingQuantity = _updatingQuantity.asStateFlow()
+    private val _updatingQuantityIds = MutableStateFlow<Set<Int>>(emptySet())
+    val updatingQuantityIds = _updatingQuantityIds.asStateFlow()
 
     private val _removingProductIds = MutableStateFlow<Set<Int>>(emptySet())
     val removingProductIds = _removingProductIds.asStateFlow()
@@ -70,21 +70,35 @@ class WishlistViewModel(
 
     fun updateQuantity(productId: Int, delta: Int) {
         viewModelScope.launch {
-            val item = repo.lastFetchedItem(productId) ?: return@launch
-            val newQty = item.quantity + delta
+            if (productId in _updatingQuantityIds.value) return@launch
 
-            _updatingQuantity.value = productId
+            _updatingQuantityIds.value += productId
 
             try {
+                var item = repo.lastFetchedItem(productId)
+                if (item == null) {
+                    repo.refresh()
+                    loadProductsForCurrentWishlist()
+                    item = repo.lastFetchedItem(productId)
+                }
+
+                if (item == null) {
+                    _errorMessage.value = "Failed to update wishlist item."
+                    return@launch
+                }
+
+                val newQty = item.quantity + delta
+
                 when {
                     newQty <= 0 -> repo.removeCompletely(productId)
                     delta == -1 -> repo.removeOne(productId)
                     else -> repo.updateQuantity(item.id!!, newQty)
                 }
+                loadProductsForCurrentWishlist()
             } catch (e: Exception) {
                 handleError(e)
             } finally {
-                _updatingQuantity.value = null
+                _updatingQuantityIds.value -= productId
             }
         }
     }
@@ -95,6 +109,7 @@ class WishlistViewModel(
 
             try {
                 repo.removeCompletely(productId)
+                loadProductsForCurrentWishlist()
             } catch (e: Exception) {
                 handleError(e)
             } finally {
@@ -106,7 +121,7 @@ class WishlistViewModel(
     fun reset() {
         viewModelScope.launch {
             repo.clearLocal()
-            _updatingQuantity.value = null
+            _updatingQuantityIds.value = emptySet()
             _removingProductIds.value = emptySet()
             _errorMessage.value = null
         }

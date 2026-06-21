@@ -46,7 +46,7 @@ fun WishlistScreen(
 ) {
     val wishlist = wishlistViewModel.wishlist.collectAsState().value
     val updating = wishlistViewModel.isUpdating.collectAsState().value
-    val updatingQuantity = wishlistViewModel.updatingQuantity.collectAsState().value
+    val updatingQuantityIds = wishlistViewModel.updatingQuantityIds.collectAsState().value
     val removingProductIds = wishlistViewModel.removingProductIds.collectAsState().value
     val isClearing = wishlistViewModel.isClearing.collectAsState().value
     val isLoading = wishlistViewModel.isLoading.collectAsState().value
@@ -121,7 +121,7 @@ fun WishlistScreen(
 
                             val dto = itemMap[p.id]
                             val quantity = dto?.quantity ?: 1
-                            val spinQty = updatingQuantity == p.id
+                            val spinQty = p.id in updatingQuantityIds
                             val isRemovingItem = p.id in removingProductIds
                             val isUpdatingItem = p.id in updating || isRemovingItem
 

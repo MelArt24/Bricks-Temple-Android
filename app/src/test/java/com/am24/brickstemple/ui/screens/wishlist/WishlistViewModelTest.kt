@@ -28,7 +28,10 @@ class WishlistViewModelTest {
     @Test
     fun `refresh failure stores error and preserves products`() = runTest {
         val existingProduct = product(7)
-        val repo = FakeWishlistRepository(refreshError = AppException(AppError.NetworkError()))
+        val repo = FakeWishlistRepository(
+            wishlistItems = mapOf(7 to 70),
+            refreshError = AppException(AppError.NetworkError())
+        )
         val productRepository = FakeProductRepository(products = listOf(existingProduct))
         val viewModel = WishlistViewModel(repo, productRepository)
 
@@ -73,7 +76,105 @@ class WishlistViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Failed to update wishlist quantity.", viewModel.errorMessage.value)
-        assertNull(viewModel.updatingQuantity.value)
+        assertEquals(emptySet<Int>(), viewModel.updatingQuantityIds.value)
+    }
+
+    @Test
+    fun `updateQuantity tracks multiple updating products independently`() = runTest {
+        val updateGate = CompletableDeferred<Unit>()
+        val repo = FakeWishlistRepository(
+            wishlistItems = mapOf(7 to 70, 8 to 80),
+            items = listOf(
+                WishlistItem(id = 70, wishlistId = 1, productId = 7, quantity = 1),
+                WishlistItem(id = 80, wishlistId = 1, productId = 8, quantity = 1)
+            ),
+            updateQuantityGate = updateGate
+        )
+        val viewModel = WishlistViewModel(repo, FakeProductRepository())
+
+        viewModel.updateQuantity(7, +1)
+        viewModel.updateQuantity(8, +1)
+        advanceUntilIdle()
+
+        assertEquals(setOf(7, 8), viewModel.updatingQuantityIds.value)
+
+        updateGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(emptySet<Int>(), viewModel.updatingQuantityIds.value)
+    }
+
+    @Test
+    fun `updateQuantity ignores duplicate mutation for same product while running`() = runTest {
+        val updateGate = CompletableDeferred<Unit>()
+        val repo = FakeWishlistRepository(
+            wishlistItems = mapOf(7 to 70),
+            items = listOf(WishlistItem(id = 70, wishlistId = 1, productId = 7, quantity = 1)),
+            updateQuantityGate = updateGate
+        )
+        val viewModel = WishlistViewModel(repo, FakeProductRepository())
+
+        viewModel.updateQuantity(7, +1)
+        viewModel.updateQuantity(7, +1)
+        advanceUntilIdle()
+
+        assertEquals(listOf(70 to 2), repo.updatedQuantities)
+
+        updateGate.complete(Unit)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun `updateQuantity refreshes missing item once before retrying mutation`() = runTest {
+        val product7 = product(7)
+        val repo = FakeWishlistRepository(
+            wishlistItems = mapOf(7 to 70),
+            refreshedItems = listOf(WishlistItem(id = 70, wishlistId = 1, productId = 7, quantity = 1))
+        )
+        val productRepository = FakeProductRepository(products = listOf(product7))
+        val viewModel = WishlistViewModel(repo, productRepository)
+
+        viewModel.updateQuantity(7, +1)
+        advanceUntilIdle()
+
+        assertEquals(1, repo.refreshCount)
+        assertEquals(listOf(70 to 2), repo.updatedQuantities)
+        assertEquals(listOf(product7), viewModel.products.value)
+        assertNull(viewModel.errorMessage.value)
+    }
+
+    @Test
+    fun `updateQuantity stores error when item is still missing after refresh`() = runTest {
+        val existingProduct = product(7)
+        val repo = FakeWishlistRepository(wishlistItems = mapOf(7 to 70))
+        val productRepository = FakeProductRepository(products = listOf(existingProduct))
+        val viewModel = WishlistViewModel(repo, productRepository)
+
+        viewModel.loadProducts()
+        advanceUntilIdle()
+
+        viewModel.updateQuantity(7, +1)
+        advanceUntilIdle()
+
+        assertEquals("Failed to update wishlist item.", viewModel.errorMessage.value)
+        assertEquals(emptySet<Int>(), viewModel.updatingQuantityIds.value)
+        assertEquals(listOf(existingProduct), viewModel.products.value)
+    }
+
+    @Test
+    fun `updateQuantity success reloads products`() = runTest {
+        val product7 = product(7)
+        val repo = FakeWishlistRepository(
+            wishlistItems = mapOf(7 to 70),
+            items = listOf(WishlistItem(id = 70, wishlistId = 1, productId = 7, quantity = 1))
+        )
+        val productRepository = FakeProductRepository(products = listOf(product7))
+        val viewModel = WishlistViewModel(repo, productRepository)
+
+        viewModel.updateQuantity(7, +1)
+        advanceUntilIdle()
+
+        assertEquals(listOf(product7), viewModel.products.value)
     }
 
     @Test
@@ -86,6 +187,45 @@ class WishlistViewModelTest {
         viewModel.removeCompletely(7)
         advanceUntilIdle()
 
+        assertEquals("Failed to remove wishlist item.", viewModel.errorMessage.value)
+    }
+
+    @Test
+    fun `removeCompletely success refreshes products from current wishlist`() = runTest {
+        val product7 = product(7)
+        val product8 = product(8)
+        val repo = FakeWishlistRepository(wishlistItems = mapOf(7 to 70, 8 to 80))
+        val productRepository = FakeProductRepository(products = listOf(product7, product8))
+        val viewModel = WishlistViewModel(repo, productRepository)
+
+        viewModel.loadProducts()
+        advanceUntilIdle()
+
+        assertEquals(listOf(product7, product8), viewModel.products.value)
+
+        viewModel.removeCompletely(7)
+        advanceUntilIdle()
+
+        assertEquals(listOf(product8), viewModel.products.value)
+    }
+
+    @Test
+    fun `removeCompletely failure preserves products`() = runTest {
+        val existingProduct = product(7)
+        val repo = FakeWishlistRepository(
+            wishlistItems = mapOf(7 to 70),
+            removeCompletelyError = AppException(AppError.ServerError(userMessage = "Failed to remove wishlist item."))
+        )
+        val productRepository = FakeProductRepository(products = listOf(existingProduct))
+        val viewModel = WishlistViewModel(repo, productRepository)
+
+        viewModel.loadProducts()
+        advanceUntilIdle()
+
+        viewModel.removeCompletely(7)
+        advanceUntilIdle()
+
+        assertEquals(listOf(existingProduct), viewModel.products.value)
         assertEquals("Failed to remove wishlist item.", viewModel.errorMessage.value)
     }
 
@@ -139,6 +279,28 @@ class WishlistViewModelTest {
     }
 
     @Test
+    fun `reset clears updating quantity ids`() = runTest {
+        val updateGate = CompletableDeferred<Unit>()
+        val repo = FakeWishlistRepository(
+            wishlistItems = mapOf(7 to 70),
+            items = listOf(WishlistItem(id = 70, wishlistId = 1, productId = 7, quantity = 1)),
+            updateQuantityGate = updateGate
+        )
+        val viewModel = WishlistViewModel(repo, FakeProductRepository())
+
+        viewModel.updateQuantity(7, +1)
+        advanceUntilIdle()
+
+        assertEquals(setOf(7), viewModel.updatingQuantityIds.value)
+
+        viewModel.reset()
+        advanceUntilIdle()
+
+        assertEquals(emptySet<Int>(), viewModel.updatingQuantityIds.value)
+        updateGate.complete(Unit)
+    }
+
+    @Test
     fun `clearWishlist failure stores error and keeps clearing reset`() = runTest {
         val repo = FakeWishlistRepository(
             clearWishlistError = AppException(AppError.ServerError(userMessage = "Failed to clear wishlist."))
@@ -172,6 +334,8 @@ class WishlistViewModelTest {
         private val refreshError: Exception? = null,
         private val removeCompletelyError: Exception? = null,
         private val removeCompletelyGate: CompletableDeferred<Unit>? = null,
+        private val updateQuantityGate: CompletableDeferred<Unit>? = null,
+        private val refreshedItems: List<WishlistItem>? = null,
         private val updateQuantityError: Exception? = null,
         private val clearWishlistError: Exception? = null
     ) : WishlistRepository {
@@ -187,18 +351,30 @@ class WishlistViewModelTest {
         override val isClearing: StateFlow<Boolean> = _isClearing
         override val isLoading: StateFlow<Boolean> = MutableStateFlow(false)
         override val isLoaded: StateFlow<Boolean> = MutableStateFlow(false)
+        var refreshCount = 0
+            private set
+        val updatedQuantities = mutableListOf<Pair<Int, Int>>()
 
         override suspend fun refresh() {
+            refreshCount++
             refreshError?.let { throw it }
+            refreshedItems?.let { items ->
+                _wishlist.value = items.associate { it.productId to it.id!! }
+                _items.value = items
+            }
         }
 
         override suspend fun removeCompletely(productId: Int) {
             removeCompletelyGate?.await()
             removeCompletelyError?.let { throw it }
+            _wishlist.value = _wishlist.value - productId
+            _items.value = _items.value.filterNot { it.productId == productId }
         }
 
         override suspend fun removeOne(productId: Int) {
             updateQuantityError?.let { throw it }
+            _wishlist.value = _wishlist.value - productId
+            _items.value = _items.value.filterNot { it.productId == productId }
         }
 
         override fun toggle(productId: Int) = Unit
@@ -207,7 +383,12 @@ class WishlistViewModelTest {
             _items.value.firstOrNull { it.productId == productId }
 
         override suspend fun updateQuantity(itemId: Int, newQuantity: Int) {
+            updatedQuantities += itemId to newQuantity
+            updateQuantityGate?.await()
             updateQuantityError?.let { throw it }
+            _items.value = _items.value.map {
+                if (it.id == itemId) it.copy(quantity = newQuantity) else it
+            }
         }
 
         override fun clearLocal() {
@@ -234,7 +415,7 @@ class WishlistViewModelTest {
 
         override suspend fun getCachedByIds(ids: List<Int>): List<Product> {
             cachedByIdsError?.let { throw it }
-            return products
+            return products.filter { it.id in ids }
         }
 
         override suspend fun searchLocal(query: String): List<Product> = emptyList()
