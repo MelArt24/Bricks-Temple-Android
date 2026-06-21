@@ -117,6 +117,18 @@ class CartViewModelTest {
     }
 
     @Test
+    fun `addProduct failure exposes error message`() {
+        val productId = 10
+        coEvery { repo.add(productId) } throws AppException(
+            AppError.ServerError(userMessage = "Failed to add cart item.")
+        )
+
+        viewModel.addProduct(productId)
+
+        assertEquals("Failed to add cart item.", viewModel.errorMessage.value)
+    }
+
+    @Test
     fun `updateQuantity with positive delta calls repo updateQuantity`() {
         val productId = 5
 

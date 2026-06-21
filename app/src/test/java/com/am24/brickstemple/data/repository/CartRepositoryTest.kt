@@ -76,6 +76,27 @@ class CartRepositoryTest {
     }
 
     @Test
+    fun `add failure maps to app exception and preserves cart state`() = runBlocking {
+        coEvery { cartDao.getAll() } returns listOf(
+            CartItemEntity(id = 1, productId = 5, quantity = 2)
+        )
+
+        repo.refresh()
+
+        coEvery { cartDao.getByProductId(10) } throws RuntimeException("DB unavailable")
+
+        try {
+            repo.add(10)
+            throw AssertionError("Expected AppException")
+        } catch (e: AppException) {
+            assertEquals("DB unavailable", e.message)
+        }
+
+        assertEquals(mapOf(5 to 2), repo.cart.value)
+        assertEquals(emptySet<Int>(), repo.isUpdating.value)
+    }
+
+    @Test
     fun `add increments quantity if exists`() = runBlocking {
         coEvery { cartDao.getByProductId(10) } returns
                 CartItemEntity(id = 1, productId = 10, quantity = 2)

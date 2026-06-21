@@ -18,8 +18,6 @@ open class CartRepositoryImpl(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : CartRepository {
 
-    private val scope = CoroutineScope(dispatcher + SupervisorJob())
-
     private val _cart = MutableStateFlow<Map<Int, Int>>(emptyMap())
     override val cart: StateFlow<Map<Int, Int>> = _cart.asStateFlow()
 
@@ -106,15 +104,20 @@ open class CartRepositoryImpl(
         }
     }
 
-    override suspend fun add(productId: Int) {
+    override suspend fun add(productId: Int) = withContext(dispatcher) {
         pendingJobs[productId]?.cancel()
 
-        val job = scope.launch {
+        val job = currentCoroutineContext().job
+        pendingJobs[productId] = job
+
+        try {
             delay(200)
             performAdd(productId)
-            pendingJobs.remove(productId)
+        } finally {
+            if (pendingJobs[productId] == job) {
+                pendingJobs.remove(productId)
+            }
         }
-        pendingJobs[productId] = job
     }
 
     suspend fun performAdd(productId: Int) = withContext(dispatcher) {
