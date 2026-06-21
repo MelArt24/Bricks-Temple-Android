@@ -19,6 +19,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -51,6 +53,8 @@ fun WishlistScreen(
     val isClearing = wishlistViewModel.isClearing.collectAsState().value
     val isLoading = wishlistViewModel.isLoading.collectAsState().value
     val cart = cartViewModel.cart.collectAsState().value
+    val errorMessage = wishlistViewModel.errorMessage.collectAsState().value
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val products = wishlistViewModel.products.collectAsState().value
 
@@ -70,6 +74,13 @@ fun WishlistScreen(
             wishlistViewModel.refresh()
 
             refreshing = false
+        }
+    }
+
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            wishlistViewModel.clearError()
         }
     }
 
@@ -186,6 +197,13 @@ fun WishlistScreen(
         if (updating.isNotEmpty() || isClearing) {
             ScreenLoader(isLoading)
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 88.dp, start = 16.dp, end = 16.dp)
+        )
     }
 }
 
