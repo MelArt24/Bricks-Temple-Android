@@ -26,6 +26,9 @@ class WishlistViewModel(
     private val _updatingQuantity = MutableStateFlow<Int?>(null)
     val updatingQuantity = _updatingQuantity.asStateFlow()
 
+    private val _removingProductIds = MutableStateFlow<Set<Int>>(emptySet())
+    val removingProductIds = _removingProductIds.asStateFlow()
+
     private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products = _products.asStateFlow()
 
@@ -88,10 +91,14 @@ class WishlistViewModel(
 
     fun removeCompletely(productId: Int) {
         viewModelScope.launch {
+            _removingProductIds.value += productId
+
             try {
                 repo.removeCompletely(productId)
             } catch (e: Exception) {
                 handleError(e)
+            } finally {
+                _removingProductIds.value -= productId
             }
         }
     }
@@ -100,6 +107,7 @@ class WishlistViewModel(
         viewModelScope.launch {
             repo.clearLocal()
             _updatingQuantity.value = null
+            _removingProductIds.value = emptySet()
             _errorMessage.value = null
         }
     }

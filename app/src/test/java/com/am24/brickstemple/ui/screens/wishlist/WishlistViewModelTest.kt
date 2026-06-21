@@ -8,6 +8,7 @@ import com.am24.brickstemple.domain.model.WishlistItem
 import com.am24.brickstemple.domain.repository.ProductRepository
 import com.am24.brickstemple.domain.repository.WishlistRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -89,6 +90,55 @@ class WishlistViewModelTest {
     }
 
     @Test
+    fun `removeCompletely tracks removing product and clears after success`() = runTest {
+        val removeGate = CompletableDeferred<Unit>()
+        val repo = FakeWishlistRepository(removeCompletelyGate = removeGate)
+        val viewModel = WishlistViewModel(repo, FakeProductRepository())
+
+        viewModel.removeCompletely(7)
+        advanceUntilIdle()
+
+        assertEquals(setOf(7), viewModel.removingProductIds.value)
+
+        removeGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(emptySet<Int>(), viewModel.removingProductIds.value)
+    }
+
+    @Test
+    fun `removeCompletely clears removing product after failure`() = runTest {
+        val repo = FakeWishlistRepository(
+            removeCompletelyError = AppException(AppError.ServerError(userMessage = "Failed to remove wishlist item."))
+        )
+        val viewModel = WishlistViewModel(repo, FakeProductRepository())
+
+        viewModel.removeCompletely(7)
+        advanceUntilIdle()
+
+        assertEquals(emptySet<Int>(), viewModel.removingProductIds.value)
+        assertEquals("Failed to remove wishlist item.", viewModel.errorMessage.value)
+    }
+
+    @Test
+    fun `reset clears removing products`() = runTest {
+        val removeGate = CompletableDeferred<Unit>()
+        val repo = FakeWishlistRepository(removeCompletelyGate = removeGate)
+        val viewModel = WishlistViewModel(repo, FakeProductRepository())
+
+        viewModel.removeCompletely(7)
+        advanceUntilIdle()
+
+        assertEquals(setOf(7), viewModel.removingProductIds.value)
+
+        viewModel.reset()
+        advanceUntilIdle()
+
+        assertEquals(emptySet<Int>(), viewModel.removingProductIds.value)
+        removeGate.complete(Unit)
+    }
+
+    @Test
     fun `clearWishlist failure stores error and keeps clearing reset`() = runTest {
         val repo = FakeWishlistRepository(
             clearWishlistError = AppException(AppError.ServerError(userMessage = "Failed to clear wishlist."))
@@ -121,6 +171,7 @@ class WishlistViewModelTest {
         items: List<WishlistItem> = emptyList(),
         private val refreshError: Exception? = null,
         private val removeCompletelyError: Exception? = null,
+        private val removeCompletelyGate: CompletableDeferred<Unit>? = null,
         private val updateQuantityError: Exception? = null,
         private val clearWishlistError: Exception? = null
     ) : WishlistRepository {
@@ -142,6 +193,7 @@ class WishlistViewModelTest {
         }
 
         override suspend fun removeCompletely(productId: Int) {
+            removeCompletelyGate?.await()
             removeCompletelyError?.let { throw it }
         }
 

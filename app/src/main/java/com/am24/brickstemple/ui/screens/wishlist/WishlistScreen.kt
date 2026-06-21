@@ -47,6 +47,7 @@ fun WishlistScreen(
     val wishlist = wishlistViewModel.wishlist.collectAsState().value
     val updating = wishlistViewModel.isUpdating.collectAsState().value
     val updatingQuantity = wishlistViewModel.updatingQuantity.collectAsState().value
+    val removingProductIds = wishlistViewModel.removingProductIds.collectAsState().value
     val isClearing = wishlistViewModel.isClearing.collectAsState().value
     val isLoading = wishlistViewModel.isLoading.collectAsState().value
     val cart = cartViewModel.cart.collectAsState().value
@@ -121,7 +122,8 @@ fun WishlistScreen(
                             val dto = itemMap[p.id]
                             val quantity = dto?.quantity ?: 1
                             val spinQty = updatingQuantity == p.id
-                            val isUpdatingItem = p.id in updating
+                            val isRemovingItem = p.id in removingProductIds
+                            val isUpdatingItem = p.id in updating || isRemovingItem
 
                             val inCart = cart.containsKey(p.id)
 
@@ -131,6 +133,7 @@ fun WishlistScreen(
                                 imageUrl = p.image ?: "",
                                 quantity = quantity,
                                 spinQuantity = spinQty,
+                                spinRemove = isRemovingItem,
                                 isUpdating = isUpdatingItem,
                                 inCart = inCart,
                                 onClick = {
@@ -168,7 +171,7 @@ fun WishlistScreen(
                                 navController.navigate(Screen.Cart.route)
                             }
                         },
-                        enabled = updating.isEmpty() && !refreshing && !isClearing
+                        enabled = updating.isEmpty() && removingProductIds.isEmpty() && !refreshing && !isClearing
                     )
                 }
             }
@@ -194,6 +197,7 @@ private fun WishlistItemRow(
     imageUrl: String,
     quantity: Int,
     spinQuantity: Boolean,
+    spinRemove: Boolean,
     isUpdating: Boolean,
     inCart: Boolean,
     onClick: () -> Unit,
@@ -297,11 +301,18 @@ private fun WishlistItemRow(
                     enabled = !isUpdating,
                     modifier = Modifier.size(32.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Remove from wishlist",
-                        tint = MaterialTheme.colorScheme.error
-                    )
+                    if (spinRemove) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Remove from wishlist",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
 
                 Spacer(Modifier.height(8.dp))
