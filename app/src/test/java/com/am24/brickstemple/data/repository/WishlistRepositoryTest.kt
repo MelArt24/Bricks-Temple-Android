@@ -19,6 +19,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -53,6 +54,14 @@ class WishlistRepositoryTest {
             mapOf(10 to 1, 20 to 2),
             repo.wishlist.value
         )
+    }
+
+    @Test
+    fun `empty wishlist response parses as empty items`() {
+        val response = Json.decodeFromString<WishlistResponse>("{}")
+
+        assertEquals(null, response.wishlist)
+        assertEquals(emptyList<WishlistItemDto>(), response.items)
     }
 
     @Test
@@ -163,6 +172,25 @@ class WishlistRepositoryTest {
             mapOf(20 to 2),
             repo.wishlist.value
         )
+    }
+
+    @Test
+    fun `removeCompletely treats empty response after deleting last item as success`() = runTest(dispatcher) {
+        val api = EmptyWhenClearedWishlistApiService().apply {
+            serverItems = mutableListOf(Triple(10, 1, 1))
+        }
+        val repo = WishlistRepositoryImpl(api, dispatcher)
+
+        repo.refresh()
+        advanceUntilIdle()
+
+        repo.removeCompletely(10)
+        advanceUntilIdle()
+
+        assertTrue(api.removed.contains(1))
+        assertEquals(emptyMap<Int, Int>(), repo.wishlist.value)
+        assertEquals(emptyList<WishlistItem>(), repo.items.value)
+        assertTrue(repo.isLoaded.value)
     }
 
     @Test
@@ -553,6 +581,37 @@ class WishlistRepositoryTest {
 
         override suspend fun clearWishlist() {
             serverItems.clear()
+        }
+    }
+
+    private class EmptyWhenClearedWishlistApiService : WishlistApiService(HttpClient()) {
+        var serverItems: MutableList<Triple<Int, Int, Int>> = mutableListOf()
+        val removed = mutableListOf<Int>()
+
+        override suspend fun getWishlist(): WishlistResponse {
+            if (serverItems.isEmpty()) return WishlistResponse()
+
+            return WishlistResponse(
+                wishlist = WishlistDto(
+                    id = 1,
+                    userId = 1,
+                    createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                ),
+                items = serverItems.map { (productId, itemId, quantity) ->
+                    WishlistItemDto(
+                        id = itemId,
+                        wishlistId = 1,
+                        productId = productId,
+                        quantity = quantity,
+                        addedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    )
+                }
+            )
+        }
+
+        override suspend fun removeItem(itemId: Int) {
+            removed += itemId
+            serverItems.removeIf { it.second == itemId }
         }
     }
 

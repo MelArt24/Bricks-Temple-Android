@@ -210,6 +210,30 @@ class WishlistViewModelTest {
     }
 
     @Test
+    fun `removeCompletely last item emits empty wishlist state without error`() = runTest {
+        val product7 = product(7)
+        val repo = FakeWishlistRepository(
+            wishlistItems = mapOf(7 to 70),
+            items = listOf(WishlistItem(id = 70, wishlistId = 1, productId = 7, quantity = 1))
+        )
+        val productRepository = FakeProductRepository(products = listOf(product7))
+        val viewModel = WishlistViewModel(repo, productRepository)
+
+        viewModel.loadProducts()
+        advanceUntilIdle()
+
+        assertEquals(listOf(product7), viewModel.products.value)
+
+        viewModel.removeCompletely(7)
+        advanceUntilIdle()
+
+        assertEquals(emptyMap<Int, Int>(), viewModel.wishlist.value)
+        assertEquals(emptyList<WishlistItem>(), viewModel.items.value)
+        assertEquals(emptyList<Product>(), viewModel.products.value)
+        assertNull(viewModel.errorMessage.value)
+    }
+
+    @Test
     fun `removeCompletely failure preserves products`() = runTest {
         val existingProduct = product(7)
         val repo = FakeWishlistRepository(

@@ -22,6 +22,6 @@ data class WishlistDto(
 
 @Serializable
 data class WishlistResponse(
-    val wishlist: WishlistDto,
-    val items: List<WishlistItemDto>
+    val wishlist: WishlistDto? = null,
+    val items: List<WishlistItemDto> = emptyList()
 )
