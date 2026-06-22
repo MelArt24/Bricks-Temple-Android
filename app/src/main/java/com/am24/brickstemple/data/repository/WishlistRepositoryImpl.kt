@@ -9,6 +9,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 open class WishlistRepositoryImpl(
     private val api: WishlistApiService,
@@ -16,6 +18,7 @@ open class WishlistRepositoryImpl(
 ) : WishlistRepository {
 
     private val scope = CoroutineScope(dispatcher + SupervisorJob())
+    private val mutationMutex = Mutex()
 
     val _wishlist = MutableStateFlow<Map<Int, Int>>(emptyMap())
     override val wishlist: StateFlow<Map<Int, Int>> = _wishlist.asStateFlow()
@@ -38,6 +41,12 @@ open class WishlistRepositoryImpl(
     override val isLoaded: StateFlow<Boolean> = _isLoaded.asStateFlow()
 
     override suspend fun refresh() = withContext(dispatcher) {
+        mutationMutex.withLock {
+            refreshFromRemote()
+        }
+    }
+
+    private suspend fun refreshFromRemote() {
         _isLoading.value = true
         try {
             val response = api.getWishlist()
@@ -54,22 +63,33 @@ open class WishlistRepositoryImpl(
     }
 
     override suspend fun removeCompletely(productId: Int) = withContext(dispatcher) {
-        val id = _wishlist.value[productId] ?: return@withContext
-        try {
-            api.removeItem(id)
-            refresh()
-        } catch (e: Exception) {
-            throw e.toAppException("Failed to remove wishlist item.")
+        mutationMutex.withLock {
+            val id = _wishlist.value[productId] ?: return@withLock
+            try {
+                api.removeItem(id)
+                refreshFromRemote()
+            } catch (e: Exception) {
+                throw e.toAppException("Failed to remove wishlist item.")
+            }
         }
     }
 
     override suspend fun removeOne(productId: Int) = withContext(dispatcher) {
-        val id = _wishlist.value[productId] ?: return@withContext
-        try {
-            api.removeOneItem(id)
-            refresh()
-        } catch (e: Exception) {
-            throw e.toAppException("Failed to update wishlist item.")
+        mutationMutex.withLock {
+            val id = _wishlist.value[productId] ?: return@withLock
+            try {
+                val item = _items.value.firstOrNull { it.productId == productId }
+                api.removeOneItem(id)
+                if (item != null && item.quantity > 1) {
+                    _items.value = _items.value.map {
+                        if (it.productId == productId) it.copy(quantity = it.quantity - 1) else it
+                    }
+                } else {
+                    refreshFromRemote()
+                }
+            } catch (e: Exception) {
+                throw e.toAppException("Failed to update wishlist item.")
+            }
         }
     }
 
@@ -99,32 +119,36 @@ open class WishlistRepositoryImpl(
     }
 
     private suspend fun performToggle(productId: Int) = withContext(dispatcher) {
-        _isUpdating.value += productId
+        mutationMutex.withLock {
+            _isUpdating.value += productId
 
-        try {
-            val current = _wishlist.value
+            try {
+                val current = _wishlist.value
 
-            if (productId in current.keys) {
-                val itemId = current[productId]!!
-                _wishlist.value = current - productId
-                try {
-                    api.removeItem(itemId)
-                } catch (e: Exception) {
-                    _wishlist.value = current
-                    throw e.toAppException("Failed to remove wishlist item.")
+                if (productId in current.keys) {
+                    val itemId = current[productId]!!
+                    _wishlist.value = current - productId
+                    try {
+                        api.removeItem(itemId)
+                        refreshFromRemote()
+                    } catch (e: Exception) {
+                        _wishlist.value = current
+                        throw e.toAppException("Failed to remove wishlist item.")
+                    }
+                } else {
+                    _wishlist.value = current + (productId to -1)
+                    try {
+                        api.addItem(productId)
+                        refreshFromRemote()
+                    } catch (e: Exception) {
+                        _wishlist.value = current
+                        throw e.toAppException("Failed to add wishlist item.")
+                    }
                 }
-            } else {
-                _wishlist.value = current + (productId to -1)
-                try {
-                    api.addItem(productId)
-                } catch (e: Exception) {
-                    _wishlist.value = current
-                    throw e.toAppException("Failed to add wishlist item.")
-                }
+
+            } finally {
+                _isUpdating.value -= productId
             }
-
-        } finally {
-            _isUpdating.value -= productId
         }
     }
 
@@ -132,11 +156,19 @@ open class WishlistRepositoryImpl(
         _items.value.firstOrNull { it.productId == productId }
 
     override suspend fun updateQuantity(itemId: Int, newQuantity: Int) = withContext(dispatcher) {
-        try {
-            api.updateQuantity(itemId, newQuantity)
-            refresh()
-        } catch (e: Exception) {
-            throw e.toAppException("Failed to update wishlist quantity.")
+        mutationMutex.withLock {
+            try {
+                api.updateQuantity(itemId, newQuantity)
+                if (_items.value.any { it.id == itemId }) {
+                    _items.value = _items.value.map {
+                        if (it.id == itemId) it.copy(quantity = newQuantity) else it
+                    }
+                } else {
+                    refreshFromRemote()
+                }
+            } catch (e: Exception) {
+                throw e.toAppException("Failed to update wishlist quantity.")
+            }
         }
     }
 
@@ -150,16 +182,18 @@ open class WishlistRepositoryImpl(
 
 
     override suspend fun clearWishlist() = withContext(dispatcher) {
-        _isClearing.value = true
+        mutationMutex.withLock {
+            _isClearing.value = true
 
-        try {
-            api.clearWishlist()
-            _wishlist.value = emptyMap()
-            _items.value = emptyList()
-        } catch (e: Exception) {
-            throw e.toAppException("Failed to clear wishlist.")
-        } finally {
-            _isClearing.value = false
+            try {
+                api.clearWishlist()
+                _wishlist.value = emptyMap()
+                _items.value = emptyList()
+            } catch (e: Exception) {
+                throw e.toAppException("Failed to clear wishlist.")
+            } finally {
+                _isClearing.value = false
+            }
         }
     }
 

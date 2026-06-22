@@ -1,13 +1,24 @@
 package com.am24.brickstemple.data.repository
 
 import com.am24.brickstemple.data.fakes.FakeWishlistApiService
+import com.am24.brickstemple.data.remote.WishlistApiService
+import com.am24.brickstemple.data.remote.dto.WishlistDto
+import com.am24.brickstemple.data.remote.dto.WishlistItemDto
+import com.am24.brickstemple.data.remote.dto.WishlistResponse
 import com.am24.brickstemple.domain.error.AppException
 import com.am24.brickstemple.domain.model.WishlistItem
+import io.ktor.client.HttpClient
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -171,6 +182,57 @@ class WishlistRepositoryTest {
     }
 
     @Test
+    fun `concurrent removeCompletely serializes refreshes before reading next item id`() = runTest(dispatcher) {
+        val api = ReassigningWishlistApiService(
+            initialItems = listOf(
+                Triple(10, 1, 1),
+                Triple(20, 2, 1),
+                Triple(30, 3, 1)
+            )
+        )
+        val repo = WishlistRepositoryImpl(api, dispatcher)
+
+        repo.refresh()
+        advanceUntilIdle()
+
+        listOf(
+            launch { repo.removeCompletely(10) },
+            launch { repo.removeCompletely(20) },
+            launch { repo.removeCompletely(30) }
+        ).joinAll()
+        advanceUntilIdle()
+
+        assertEquals(emptyMap<Int, Int>(), repo.wishlist.value)
+        assertTrue(api.serverItems.isEmpty())
+        assertEquals(3, api.removed.size)
+    }
+
+    @Test
+    fun `concurrent toggle removals preserve all local removals`() = runTest(dispatcher) {
+        val api = ReassigningWishlistApiService(
+            initialItems = listOf(
+                Triple(10, 1, 1),
+                Triple(20, 2, 1),
+                Triple(30, 3, 1)
+            )
+        )
+        val repo = WishlistRepositoryImpl(api, dispatcher)
+
+        repo.refresh()
+        advanceUntilIdle()
+
+        repo.toggle(10)
+        repo.toggle(20)
+        repo.toggle(30)
+        advanceTimeBy(250)
+        advanceUntilIdle()
+
+        assertEquals(emptyMap<Int, Int>(), repo.wishlist.value)
+        assertTrue(api.serverItems.isEmpty())
+        assertEquals(3, api.removed.size)
+    }
+
+    @Test
     fun `removeOne should call removeOneItem and refresh`() = runTest(dispatcher) {
         repo.refresh()
         advanceUntilIdle()
@@ -184,6 +246,42 @@ class WishlistRepositoryTest {
             mapOf(10 to 1),
             repo.wishlist.value
         )
+    }
+
+    @Test
+    fun `removeOne with remaining quantity updates local item without refresh`() = runTest(dispatcher) {
+        val api = CountingWishlistApiService().apply {
+            serverItems = mutableListOf(Triple(10, 1, 3))
+        }
+        val repo = WishlistRepositoryImpl(api, dispatcher)
+
+        repo.refresh()
+        advanceUntilIdle()
+
+        assertEquals(1, api.getWishlistCount)
+
+        repo.removeOne(10)
+        advanceUntilIdle()
+
+        assertEquals(1, api.getWishlistCount)
+        assertEquals(mapOf(10 to 1), repo.wishlist.value)
+        assertEquals(2, repo.lastFetchedItem(10)?.quantity)
+    }
+
+    @Test
+    fun `removeOne with missing local item falls back to refresh`() = runTest(dispatcher) {
+        val api = CountingWishlistApiService().apply {
+            serverItems = mutableListOf(Triple(10, 1, 2))
+        }
+        val repo = WishlistRepositoryImpl(api, dispatcher)
+
+        repo._wishlist.value = mapOf(10 to 1)
+
+        repo.removeOne(10)
+        advanceUntilIdle()
+
+        assertEquals(1, api.getWishlistCount)
+        assertEquals(1, repo.lastFetchedItem(10)?.quantity)
     }
 
 
@@ -238,6 +336,42 @@ class WishlistRepositoryTest {
         assertEquals(5, item?.quantity)
     }
 
+    @Test
+    fun `updateQuantity with local item updates local item without refresh`() = runTest(dispatcher) {
+        val api = CountingWishlistApiService().apply {
+            serverItems = mutableListOf(Triple(10, 1, 1))
+        }
+        val repo = WishlistRepositoryImpl(api, dispatcher)
+
+        repo.refresh()
+        advanceUntilIdle()
+
+        assertEquals(1, api.getWishlistCount)
+
+        repo.updateQuantity(1, 4)
+        advanceUntilIdle()
+
+        assertEquals(1, api.getWishlistCount)
+        assertEquals(4, repo.lastFetchedItem(10)?.quantity)
+        assertEquals(mapOf(10 to 1), repo.wishlist.value)
+    }
+
+    @Test
+    fun `updateQuantity with missing local item falls back to refresh`() = runTest(dispatcher) {
+        val api = CountingWishlistApiService().apply {
+            serverItems = mutableListOf(Triple(10, 1, 1))
+        }
+        val repo = WishlistRepositoryImpl(api, dispatcher)
+
+        repo._wishlist.value = mapOf(10 to 1)
+
+        repo.updateQuantity(1, 6)
+        advanceUntilIdle()
+
+        assertEquals(1, api.getWishlistCount)
+        assertEquals(6, repo.lastFetchedItem(10)?.quantity)
+    }
+
 
     @Test
     fun `removeOne does nothing for unknown product`() = runTest(dispatcher) {
@@ -287,6 +421,27 @@ class WishlistRepositoryTest {
     }
 
     @Test
+    fun `clearWishlist clears local state without refresh`() = runTest(dispatcher) {
+        val api = CountingWishlistApiService().apply {
+            serverItems = mutableListOf(Triple(10, 1, 1), Triple(20, 2, 1))
+        }
+        val repo = WishlistRepositoryImpl(api, dispatcher)
+
+        repo.refresh()
+        advanceUntilIdle()
+
+        assertEquals(1, api.getWishlistCount)
+
+        repo.clearWishlist()
+        advanceUntilIdle()
+
+        assertEquals(1, api.getWishlistCount)
+        assertTrue(repo.wishlist.value.isEmpty())
+        assertTrue(repo.items.value.isEmpty())
+        assertTrue(api.serverItems.isEmpty())
+    }
+
+    @Test
     fun `clearWishlist preserves local state when remote clear fails`() = runTest(dispatcher) {
         val existingWishlist = mapOf(10 to 1, 20 to 2)
         val existingItems = listOf(
@@ -312,5 +467,93 @@ class WishlistRepositoryTest {
     }
 
 
+
+    private class ReassigningWishlistApiService(
+        initialItems: List<Triple<Int, Int, Int>>
+    ) : WishlistApiService(HttpClient()) {
+        var serverItems = initialItems.toMutableList()
+        val removed = mutableListOf<Int>()
+        private var nextItemId = 100
+
+        override suspend fun getWishlist(): WishlistResponse =
+            WishlistResponse(
+                wishlist = WishlistDto(
+                    id = 1,
+                    userId = 1,
+                    createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                ),
+                items = serverItems.map { (productId, itemId, quantity) ->
+                    WishlistItemDto(
+                        id = itemId,
+                        wishlistId = 1,
+                        productId = productId,
+                        quantity = quantity,
+                        addedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    )
+                }
+            )
+
+        override suspend fun removeItem(itemId: Int) {
+            delay(1)
+            val index = serverItems.indexOfFirst { it.second == itemId }
+            if (index == -1) error("""{ "error": "Item not found" }""")
+
+            removed += itemId
+            serverItems.removeAt(index)
+            serverItems = serverItems.map { (productId, _, quantity) ->
+                Triple(productId, nextItemId++, quantity)
+            }.toMutableList()
+        }
+    }
+
+    private class CountingWishlistApiService : WishlistApiService(HttpClient()) {
+        var serverItems: MutableList<Triple<Int, Int, Int>> = mutableListOf()
+        var getWishlistCount = 0
+            private set
+
+        override suspend fun getWishlist(): WishlistResponse {
+            getWishlistCount++
+            return WishlistResponse(
+                wishlist = WishlistDto(
+                    id = 1,
+                    userId = 1,
+                    createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                ),
+                items = serverItems.map { (productId, itemId, quantity) ->
+                    WishlistItemDto(
+                        id = itemId,
+                        wishlistId = 1,
+                        productId = productId,
+                        quantity = quantity,
+                        addedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    )
+                }
+            )
+        }
+
+        override suspend fun removeOneItem(itemId: Int) {
+            val index = serverItems.indexOfFirst { it.second == itemId }
+            if (index != -1) {
+                val item = serverItems[index]
+                val quantity = item.third - 1
+                if (quantity <= 0) {
+                    serverItems.removeAt(index)
+                } else {
+                    serverItems[index] = item.copy(third = quantity)
+                }
+            }
+        }
+
+        override suspend fun updateQuantity(itemId: Int, quantity: Int) {
+            val index = serverItems.indexOfFirst { it.second == itemId }
+            if (index != -1) {
+                serverItems[index] = serverItems[index].copy(third = quantity)
+            }
+        }
+
+        override suspend fun clearWishlist() {
+            serverItems.clear()
+        }
+    }
 
 }
