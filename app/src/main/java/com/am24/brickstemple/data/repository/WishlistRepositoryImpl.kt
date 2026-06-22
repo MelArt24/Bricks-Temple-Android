@@ -9,8 +9,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 open class WishlistRepositoryImpl(
     private val api: WishlistApiService,
@@ -18,12 +16,7 @@ open class WishlistRepositoryImpl(
 ) : WishlistRepository {
 
     private val scope = CoroutineScope(dispatcher + SupervisorJob())
-    private val localStateMutex = Mutex()
-    private val gateMutex = Mutex()
-    private val productLocksGuard = Any()
-    private val productLocks = mutableMapOf<Int, Mutex>()
-    private val itemLocksGuard = Any()
-    private val itemLocks = mutableMapOf<Int, Mutex>()
+    private val coordinator = WishlistMutationCoordinator()
 
     val _wishlist = MutableStateFlow<Map<Int, Int>>(emptyMap())
     override val wishlist: StateFlow<Map<Int, Int>> = _wishlist.asStateFlow()
@@ -49,9 +42,6 @@ open class WishlistRepositoryImpl(
     private val pendingRemoveProductIds = mutableSetOf<Int>()
     private val pendingQuantityUpdates = mutableMapOf<Int, Int>()
     private var reconciliationJob: Job? = null
-    private var clearInProgress = false
-    private var activeMutations = 0
-    private var activeMutationsDrained: CompletableDeferred<Unit>? = null
 
     override suspend fun refresh() = withContext(dispatcher) {
         refreshFromRemote(showLoading = true)
@@ -62,7 +52,7 @@ open class WishlistRepositoryImpl(
         try {
             val response = api.getWishlist()
 
-            localStateMutex.withLock {
+            coordinator.withLocalStateLock {
                 applyRemoteWishlist(response.items.map { it.toDomain() })
                 _isLoaded.value = true
             }
@@ -74,17 +64,17 @@ open class WishlistRepositoryImpl(
     }
 
     override suspend fun removeCompletely(productId: Int) = withContext(dispatcher) {
-        runIndividualMutation {
-            productMutex(productId).withLock {
-                val itemId = localStateMutex.withLock {
+        coordinator.runIndividualMutation {
+            coordinator.withProductLock(productId) {
+                val itemId = coordinator.withLocalStateLock {
                     _wishlist.value[productId]
-                } ?: return@withLock
-                if (itemId == PENDING_ITEM_ID) return@withLock
+                } ?: return@withProductLock
+                if (itemId == PENDING_ITEM_ID) return@withProductLock
 
-                itemMutex(itemId).withLock {
-                    val snapshot = localStateMutex.withLock {
-                        val currentItemId = _wishlist.value[productId] ?: return@withLock null
-                        if (currentItemId != itemId) return@withLock null
+                coordinator.withItemLock(itemId) {
+                    val snapshot = coordinator.withLocalStateLock {
+                        val currentItemId = _wishlist.value[productId] ?: return@withLocalStateLock null
+                        if (currentItemId != itemId) return@withLocalStateLock null
 
                         val previousWishlist = _wishlist.value
                         val previousItems = _items.value
@@ -98,18 +88,18 @@ open class WishlistRepositoryImpl(
                             wishlist = previousWishlist,
                             items = previousItems
                         )
-                    } ?: return@withLock
+                    } ?: return@withItemLock
 
                     try {
                         api.removeItem(snapshot.itemId)
                     } catch (e: Exception) {
-                        localStateMutex.withLock {
+                        coordinator.withLocalStateLock {
                             _wishlist.value = snapshot.wishlist
                             _items.value = snapshot.items
                         }
                         throw e.toAppException("Failed to remove wishlist item.")
                     } finally {
-                        localStateMutex.withLock {
+                        coordinator.withLocalStateLock {
                             pendingRemoveProductIds -= productId
                         }
                     }
@@ -119,20 +109,20 @@ open class WishlistRepositoryImpl(
     }
 
     override suspend fun removeOne(productId: Int) = withContext(dispatcher) {
-        runIndividualMutation {
-            productMutex(productId).withLock {
-                val itemId = localStateMutex.withLock {
+        coordinator.runIndividualMutation {
+            coordinator.withProductLock(productId) {
+                val itemId = coordinator.withLocalStateLock {
                     _wishlist.value[productId]
-                } ?: return@withLock
-                if (itemId == PENDING_ITEM_ID) return@withLock
+                } ?: return@withProductLock
+                if (itemId == PENDING_ITEM_ID) return@withProductLock
 
-                itemMutex(itemId).withLock {
-                    val snapshot = localStateMutex.withLock {
-                        val currentItemId = _wishlist.value[productId] ?: return@withLock null
-                        if (currentItemId != itemId) return@withLock null
+                coordinator.withItemLock(itemId) {
+                    val snapshot = coordinator.withLocalStateLock {
+                        val currentItemId = _wishlist.value[productId] ?: return@withLocalStateLock null
+                        if (currentItemId != itemId) return@withLocalStateLock null
 
                         val item = _items.value.firstOrNull { it.productId == productId }
-                            ?: return@withLock MutationSnapshot(
+                            ?: return@withLocalStateLock MutationSnapshot(
                                 itemId = itemId,
                                 wishlist = _wishlist.value,
                                 items = _items.value,
@@ -158,7 +148,7 @@ open class WishlistRepositoryImpl(
                             items = previousItems,
                             removedProductId = if (item.quantity <= 1) productId else null
                         )
-                    } ?: return@withLock
+                    } ?: return@withItemLock
 
                     try {
                         api.removeOneItem(snapshot.itemId)
@@ -166,14 +156,14 @@ open class WishlistRepositoryImpl(
                             refreshFromRemote(showLoading = false)
                         }
                     } catch (e: Exception) {
-                        localStateMutex.withLock {
+                        coordinator.withLocalStateLock {
                             _wishlist.value = snapshot.wishlist
                             _items.value = snapshot.items
                         }
                         throw e.toAppException("Failed to update wishlist item.")
                     } finally {
                         snapshot.removedProductId?.let { removedProductId ->
-                            localStateMutex.withLock {
+                            coordinator.withLocalStateLock {
                                 pendingRemoveProductIds -= removedProductId
                             }
                         }
@@ -216,15 +206,15 @@ open class WishlistRepositoryImpl(
     }
 
     private suspend fun performToggle(productId: Int) = withContext(dispatcher) {
-        runIndividualMutation {
-            productMutex(productId).withLock {
-                val snapshot = localStateMutex.withLock {
+        coordinator.runIndividualMutation {
+            coordinator.withProductLock(productId) {
+                val snapshot = coordinator.withLocalStateLock {
                     val current = _wishlist.value
                     val previousItems = _items.value
 
                     if (productId in current.keys) {
                         val itemId = current[productId]!!
-                        if (itemId == PENDING_ITEM_ID) return@withLock null
+                        if (itemId == PENDING_ITEM_ID) return@withLocalStateLock null
 
                         pendingRemoveProductIds += productId
                         _wishlist.value = current - productId
@@ -253,19 +243,19 @@ open class WishlistRepositoryImpl(
                             wasFavorite = false
                         )
                     }
-                } ?: return@withLock
+                } ?: return@withProductLock
 
                 if (snapshot.wasFavorite) {
                     try {
                         api.removeItem(snapshot.itemId!!)
                     } catch (e: Exception) {
-                        localStateMutex.withLock {
+                        coordinator.withLocalStateLock {
                             _wishlist.value = snapshot.wishlist
                             _items.value = snapshot.items
                         }
                         throw e.toAppException("Failed to remove wishlist item.")
                     } finally {
-                        localStateMutex.withLock {
+                        coordinator.withLocalStateLock {
                             pendingRemoveProductIds -= productId
                         }
                         _isUpdating.value -= productId
@@ -275,7 +265,7 @@ open class WishlistRepositoryImpl(
                         api.addItem(productId)
                         scheduleReconciliation()
                     } catch (e: Exception) {
-                        localStateMutex.withLock {
+                        coordinator.withLocalStateLock {
                             pendingAddProductIds -= productId
                             _wishlist.value = snapshot.wishlist
                             _items.value = snapshot.items
@@ -292,12 +282,12 @@ open class WishlistRepositoryImpl(
         _items.value.firstOrNull { it.productId == productId }
 
     override suspend fun updateQuantity(itemId: Int, newQuantity: Int) = withContext(dispatcher) {
-        runIndividualMutation {
-            itemMutex(itemId).withLock {
-                val snapshot = localStateMutex.withLock {
+        coordinator.runIndividualMutation {
+            coordinator.withItemLock(itemId) {
+                val snapshot = coordinator.withLocalStateLock {
                     val previousItems = _items.value
                     if (previousItems.none { it.id == itemId }) {
-                        return@withLock MutationSnapshot(
+                        return@withLocalStateLock MutationSnapshot(
                             itemId = itemId,
                             wishlist = _wishlist.value,
                             items = previousItems,
@@ -323,12 +313,12 @@ open class WishlistRepositoryImpl(
                         refreshFromRemote(showLoading = false)
                     }
                 } catch (e: Exception) {
-                    localStateMutex.withLock {
+                    coordinator.withLocalStateLock {
                         _items.value = snapshot.items
                     }
                     throw e.toAppException("Failed to update wishlist quantity.")
                 } finally {
-                    localStateMutex.withLock {
+                    coordinator.withLocalStateLock {
                         pendingQuantityUpdates.remove(itemId)
                     }
                 }
@@ -351,7 +341,7 @@ open class WishlistRepositoryImpl(
 
 
     override suspend fun clearWishlist() = withContext(dispatcher) {
-        beginClear()
+        coordinator.beginClear()
         val previousWishlist = _wishlist.value
         val previousItems = _items.value
 
@@ -362,7 +352,7 @@ open class WishlistRepositoryImpl(
 
         try {
             api.clearWishlist()
-            localStateMutex.withLock {
+            coordinator.withLocalStateLock {
                 pendingAddProductIds.clear()
                 pendingRemoveProductIds.clear()
                 pendingQuantityUpdates.clear()
@@ -371,70 +361,14 @@ open class WishlistRepositoryImpl(
                 _items.value = emptyList()
             }
         } catch (e: Exception) {
-            localStateMutex.withLock {
+            coordinator.withLocalStateLock {
                 _wishlist.value = previousWishlist
                 _items.value = previousItems
             }
             throw e.toAppException("Failed to clear wishlist.")
         } finally {
             _isClearing.value = false
-            endClear()
-        }
-    }
-
-    private fun productMutex(productId: Int): Mutex =
-        synchronized(productLocksGuard) {
-            productLocks.getOrPut(productId) { Mutex() }
-        }
-
-    private fun itemMutex(itemId: Int): Mutex =
-        synchronized(itemLocksGuard) {
-            itemLocks.getOrPut(itemId) { Mutex() }
-        }
-
-    private suspend fun <T> runIndividualMutation(block: suspend () -> T): T {
-        enterMutation()
-        return try {
-            block()
-        } finally {
-            leaveMutation()
-        }
-    }
-
-    private suspend fun enterMutation() {
-        while (true) {
-            gateMutex.withLock {
-                if (!clearInProgress) {
-                    activeMutations++
-                    return
-                }
-            }
-            delay(10)
-        }
-    }
-
-    private suspend fun leaveMutation() {
-        gateMutex.withLock {
-            activeMutations--
-            if (activeMutations == 0) {
-                activeMutationsDrained?.complete(Unit)
-                activeMutationsDrained = null
-            }
-        }
-    }
-
-    private suspend fun beginClear() {
-        val waiter = gateMutex.withLock {
-            clearInProgress = true
-            if (activeMutations == 0) null
-            else CompletableDeferred<Unit>().also { activeMutationsDrained = it }
-        }
-        waiter?.await()
-    }
-
-    private suspend fun endClear() {
-        gateMutex.withLock {
-            clearInProgress = false
+            coordinator.endClear()
         }
     }
 
@@ -445,7 +379,7 @@ open class WishlistRepositoryImpl(
             try {
                 refreshFromRemote(showLoading = false)
             } catch (_: Exception) {
-                val unresolved = localStateMutex.withLock { pendingAddProductIds.toSet() }
+                val unresolved = coordinator.withLocalStateLock { pendingAddProductIds.toSet() }
                 _isUpdating.value -= unresolved
             }
         }
