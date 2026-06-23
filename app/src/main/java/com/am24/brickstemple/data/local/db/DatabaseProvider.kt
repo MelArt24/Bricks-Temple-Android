@@ -15,7 +15,6 @@ object DatabaseProvider {
                 "bricks_temple.db"
             )
                 .addMigrations(*DatabaseMigrations.ALL)
-                .fallbackToDestructiveMigration()
                 .build().also { INSTANCE = it }
         }
     }
