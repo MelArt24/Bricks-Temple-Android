@@ -51,6 +51,7 @@ class ProductViewModel(
 
     private val _uiState = MutableStateFlow(ProductUiState())
     val uiState: StateFlow<ProductUiState> = _uiState.asStateFlow()
+    private var requestedProductId: Int? = null
 
     val searchQuery: StateFlow<String> = _uiState
         .map { it.searchQuery }
@@ -143,26 +144,40 @@ class ProductViewModel(
     }
 
     fun loadById(id: Int) {
-        viewModelScope.launch {
-            _uiState.update {
-                it.copy(productById = ProductResultUiState(isLoading = true))
-            }
+        requestedProductId = id
+        _uiState.update {
+            it.copy(productById = ProductResultUiState(isLoading = true))
+        }
 
+        viewModelScope.launch {
             try {
                 val local = repo.getLocalById(id)
                 if (local != null)
                     _uiState.update {
-                        it.copy(productById = ProductResultUiState(products = listOf(local)))
+                        if (requestedProductId == id) {
+                            it.copy(productById = ProductResultUiState(products = listOf(local)))
+                        } else {
+                            it
+                        }
                     }
 
                 val updated = repo.getById(id)
                 _uiState.update {
-                    it.copy(productById = ProductResultUiState(products = listOf(updated)))
+                    if (requestedProductId == id) {
+                        it.copy(productById = ProductResultUiState(products = listOf(updated)))
+                    } else {
+                        it
+                    }
                 }
 
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 _uiState.update {
-                    it.copy(productById = ProductResultUiState(error = e.toUserMessage()))
+                    if (requestedProductId == id) {
+                        it.copy(productById = ProductResultUiState(error = e.toUserMessage()))
+                    } else {
+                        it
+                    }
                 }
             }
         }

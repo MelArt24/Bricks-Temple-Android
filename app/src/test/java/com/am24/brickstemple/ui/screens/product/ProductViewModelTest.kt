@@ -7,7 +7,9 @@ import com.am24.brickstemple.data.fakes.FakeProductRepository
 import com.am24.brickstemple.data.repository.ProductRepositoryImpl
 import com.am24.brickstemple.domain.error.AppError
 import com.am24.brickstemple.domain.error.AppException
+import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.domain.repository.ProductRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -94,6 +96,32 @@ class ProductViewModelTest {
         assertNotNull(state.products.firstOrNull())
         assertEquals(1, state.products.first().id)
         assertNull(state.error)
+    }
+
+    @Test
+    fun `loadById clears previous product while loading different product`() = runTest {
+        val productTwoGate = CompletableDeferred<Unit>()
+        val repo = DelayedProductRepository(productTwoGate)
+        val vm = ProductViewModel(repo)
+
+        vm.loadById(1)
+        advanceUntilIdle()
+
+        assertEquals(1, vm.uiState.value.productById.products.first().id)
+
+        vm.loadById(2)
+
+        val loadingState = vm.uiState.value.productById
+        assertTrue(loadingState.isLoading)
+        assertTrue(loadingState.products.isEmpty())
+        assertNull(loadingState.error)
+
+        productTwoGate.complete(Unit)
+        advanceUntilIdle()
+
+        val loadedState = vm.uiState.value.productById
+        assertFalse(loadedState.isLoading)
+        assertEquals(2, loadedState.products.first().id)
     }
 
     @Test
@@ -239,5 +267,41 @@ class ProductViewModelTest {
         val falcon = vm.uiState.value.sets.products.first { it.id == 1 }
 
         assertTrue(vm.matchesQuery(falcon, "75192"))
+    }
+
+    private class DelayedProductRepository(
+        private val productTwoGate: CompletableDeferred<Unit>
+    ) : ProductRepository {
+        override suspend fun getCachedByType(type: String): List<Product> = emptyList()
+        override suspend fun getCachedByIds(ids: List<Int>): List<Product> = emptyList()
+        override suspend fun searchLocal(query: String): List<Product> = emptyList()
+        override suspend fun getLocalById(id: Int): Product? = null
+        override suspend fun refreshAllTypesParallel(): List<Product> = emptyList()
+        override suspend fun syncByType(type: String): List<Product> = emptyList()
+
+        override suspend fun getById(id: Int): Product {
+            if (id == 2) {
+                productTwoGate.await()
+            }
+            return product(id)
+        }
+
+        override suspend fun getFiltered(
+            type: String?,
+            category: String?,
+            search: String?,
+            minPrice: String?,
+            maxPrice: String?,
+            year: String?
+        ): List<Product> = emptyList()
+    }
+
+    private companion object {
+        fun product(id: Int) = Product(
+            id = id,
+            name = "Product $id",
+            type = "set",
+            price = id.toDouble()
+        )
     }
 }
