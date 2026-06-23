@@ -4,12 +4,30 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.am24.brickstemple.domain.error.AppException
 import com.am24.brickstemple.domain.model.Product
+import com.am24.brickstemple.domain.model.WishlistItem
 import com.am24.brickstemple.domain.repository.ProductRepository
 import com.am24.brickstemple.domain.repository.WishlistRepository
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+data class WishlistUiState(
+    val wishlist: Map<Int, Int> = emptyMap(),
+    val items: List<WishlistItem> = emptyList(),
+    val products: List<Product> = emptyList(),
+    val updatingIds: Set<Int> = emptySet(),
+    val updatingQuantityIds: Set<Int> = emptySet(),
+    val removingProductIds: Set<Int> = emptySet(),
+    val isClearing: Boolean = false,
+    val isLoading: Boolean = false,
+    val isLoaded: Boolean = false,
+    val errorMessage: String? = null
+)
 
 class WishlistViewModel(
     private val repo: WishlistRepository,
@@ -17,28 +35,49 @@ class WishlistViewModel(
 ) : ViewModel() {
 
     val wishlist = repo.wishlist
-    val items = repo.items
     val isUpdating = repo.isUpdating
-    val isClearing = repo.isClearing
     val isLoading = repo.isLoading
-    val loaded = repo.isLoaded
 
-    private val _updatingQuantityIds = MutableStateFlow<Set<Int>>(emptySet())
-    val updatingQuantityIds = _updatingQuantityIds.asStateFlow()
+    private val _uiState = MutableStateFlow(WishlistUiState())
 
-    private val _removingProductIds = MutableStateFlow<Set<Int>>(emptySet())
-    val removingProductIds = _removingProductIds.asStateFlow()
+    val uiState: StateFlow<WishlistUiState> = combine(
+        repo.wishlist,
+        repo.items,
+        repo.isUpdating,
+        repo.isClearing,
+        repo.isLoading,
+        repo.isLoaded,
+        _uiState
+    ) { values ->
+        @Suppress("UNCHECKED_CAST")
+        val wishlist = values[0] as Map<Int, Int>
+        @Suppress("UNCHECKED_CAST")
+        val items = values[1] as List<WishlistItem>
+        @Suppress("UNCHECKED_CAST")
+        val updatingIds = values[2] as Set<Int>
+        val isClearing = values[3] as Boolean
+        val isLoading = values[4] as Boolean
+        val isLoaded = values[5] as Boolean
+        val state = values[6] as WishlistUiState
 
-    private val _products = MutableStateFlow<List<Product>>(emptyList())
-    val products = _products.asStateFlow()
-
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage = _errorMessage.asStateFlow()
+        state.copy(
+            wishlist = wishlist,
+            items = items,
+            updatingIds = updatingIds,
+            isClearing = isClearing,
+            isLoading = isLoading,
+            isLoaded = isLoaded
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = WishlistUiState()
+    )
 
     fun refresh() {
         viewModelScope.launch {
             try {
-                _errorMessage.value = null
+                _uiState.update { it.copy(errorMessage = null) }
                 repo.refresh()
                 loadProductsForCurrentWishlist()
             } catch (e: Exception) {
@@ -70,9 +109,11 @@ class WishlistViewModel(
 
     fun updateQuantity(productId: Int, delta: Int) {
         viewModelScope.launch {
-            if (productId in _updatingQuantityIds.value) return@launch
+            if (productId in _uiState.value.updatingQuantityIds) return@launch
 
-            _updatingQuantityIds.value += productId
+            _uiState.update {
+                it.copy(updatingQuantityIds = it.updatingQuantityIds + productId)
+            }
 
             try {
                 var item = repo.lastFetchedItem(productId)
@@ -83,7 +124,7 @@ class WishlistViewModel(
                 }
 
                 if (item == null) {
-                    _errorMessage.value = "Failed to update wishlist item."
+                    _uiState.update { it.copy(errorMessage = "Failed to update wishlist item.") }
                     return@launch
                 }
 
@@ -98,14 +139,18 @@ class WishlistViewModel(
             } catch (e: Exception) {
                 handleError(e)
             } finally {
-                _updatingQuantityIds.value -= productId
+                _uiState.update {
+                    it.copy(updatingQuantityIds = it.updatingQuantityIds - productId)
+                }
             }
         }
     }
 
     fun removeCompletely(productId: Int) {
         viewModelScope.launch {
-            _removingProductIds.value += productId
+            _uiState.update {
+                it.copy(removingProductIds = it.removingProductIds + productId)
+            }
 
             try {
                 repo.removeCompletely(productId)
@@ -113,7 +158,9 @@ class WishlistViewModel(
             } catch (e: Exception) {
                 handleError(e)
             } finally {
-                _removingProductIds.value -= productId
+                _uiState.update {
+                    it.copy(removingProductIds = it.removingProductIds - productId)
+                }
             }
         }
     }
@@ -121,9 +168,13 @@ class WishlistViewModel(
     fun reset() {
         viewModelScope.launch {
             repo.clearLocal()
-            _updatingQuantityIds.value = emptySet()
-            _removingProductIds.value = emptySet()
-            _errorMessage.value = null
+            _uiState.update {
+                it.copy(
+                    updatingQuantityIds = emptySet(),
+                    removingProductIds = emptySet(),
+                    errorMessage = null
+                )
+            }
         }
     }
 
@@ -131,7 +182,7 @@ class WishlistViewModel(
     fun clearWishlist() {
         viewModelScope.launch {
             try {
-                _errorMessage.value = null
+                _uiState.update { it.copy(errorMessage = null) }
                 repo.clearWishlist()
             } catch (e: Exception) {
                 handleError(e)
@@ -140,18 +191,24 @@ class WishlistViewModel(
     }
 
     fun clearError() {
-        _errorMessage.value = null
+        _uiState.update { it.copy(errorMessage = null) }
     }
 
     private suspend fun loadProductsForCurrentWishlist() {
         val productIds = repo.wishlist.value.keys.toList()
-        _products.value = productRepository.getCachedByIds(productIds)
+        _uiState.update {
+            it.copy(products = productRepository.getCachedByIds(productIds))
+        }
     }
 
     private fun handleError(error: Exception) {
         if (error is CancellationException) throw error
-        _errorMessage.value = (error as? AppException)?.error?.userMessage
-            ?: error.message
-            ?: "Unexpected error occurred."
+        _uiState.update {
+            it.copy(
+                errorMessage = (error as? AppException)?.error?.userMessage
+                    ?: error.message
+                    ?: "Unexpected error occurred."
+            )
+        }
     }
 }

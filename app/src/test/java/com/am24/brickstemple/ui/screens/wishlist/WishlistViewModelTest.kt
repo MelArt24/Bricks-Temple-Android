@@ -9,8 +9,11 @@ import com.am24.brickstemple.domain.repository.ProductRepository
 import com.am24.brickstemple.domain.repository.WishlistRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -34,6 +37,7 @@ class WishlistViewModelTest {
         )
         val productRepository = FakeProductRepository(products = listOf(existingProduct))
         val viewModel = WishlistViewModel(repo, productRepository)
+        launchUiStateCollector(viewModel)
 
         viewModel.loadProducts()
         advanceUntilIdle()
@@ -41,8 +45,8 @@ class WishlistViewModelTest {
         viewModel.refresh()
         advanceUntilIdle()
 
-        assertEquals("No internet connection.", viewModel.errorMessage.value)
-        assertEquals(listOf(existingProduct), viewModel.products.value)
+        assertEquals("No internet connection.", viewModel.uiState.value.errorMessage)
+        assertEquals(listOf(existingProduct), viewModel.uiState.value.products)
     }
 
     @Test
@@ -51,6 +55,7 @@ class WishlistViewModelTest {
         val repo = FakeWishlistRepository(wishlistItems = mapOf(7 to 70))
         val productRepository = FakeProductRepository(products = listOf(existingProduct))
         val viewModel = WishlistViewModel(repo, productRepository)
+        launchUiStateCollector(viewModel)
 
         viewModel.loadProducts()
         advanceUntilIdle()
@@ -59,8 +64,8 @@ class WishlistViewModelTest {
         viewModel.loadProducts()
         advanceUntilIdle()
 
-        assertEquals("Local data error. Please try again.", viewModel.errorMessage.value)
-        assertEquals(listOf(existingProduct), viewModel.products.value)
+        assertEquals("Local data error. Please try again.", viewModel.uiState.value.errorMessage)
+        assertEquals(listOf(existingProduct), viewModel.uiState.value.products)
     }
 
     @Test
@@ -71,12 +76,13 @@ class WishlistViewModelTest {
             updateQuantityError = AppException(AppError.ServerError(userMessage = "Failed to update wishlist quantity."))
         )
         val viewModel = WishlistViewModel(repo, FakeProductRepository())
+        launchUiStateCollector(viewModel)
 
         viewModel.updateQuantity(7, +1)
         advanceUntilIdle()
 
-        assertEquals("Failed to update wishlist quantity.", viewModel.errorMessage.value)
-        assertEquals(emptySet<Int>(), viewModel.updatingQuantityIds.value)
+        assertEquals("Failed to update wishlist quantity.", viewModel.uiState.value.errorMessage)
+        assertEquals(emptySet<Int>(), viewModel.uiState.value.updatingQuantityIds)
     }
 
     @Test
@@ -91,17 +97,18 @@ class WishlistViewModelTest {
             updateQuantityGate = updateGate
         )
         val viewModel = WishlistViewModel(repo, FakeProductRepository())
+        launchUiStateCollector(viewModel)
 
         viewModel.updateQuantity(7, +1)
         viewModel.updateQuantity(8, +1)
         advanceUntilIdle()
 
-        assertEquals(setOf(7, 8), viewModel.updatingQuantityIds.value)
+        assertEquals(setOf(7, 8), viewModel.uiState.value.updatingQuantityIds)
 
         updateGate.complete(Unit)
         advanceUntilIdle()
 
-        assertEquals(emptySet<Int>(), viewModel.updatingQuantityIds.value)
+        assertEquals(emptySet<Int>(), viewModel.uiState.value.updatingQuantityIds)
     }
 
     @Test
@@ -113,6 +120,7 @@ class WishlistViewModelTest {
             updateQuantityGate = updateGate
         )
         val viewModel = WishlistViewModel(repo, FakeProductRepository())
+        launchUiStateCollector(viewModel)
 
         viewModel.updateQuantity(7, +1)
         viewModel.updateQuantity(7, +1)
@@ -133,14 +141,15 @@ class WishlistViewModelTest {
         )
         val productRepository = FakeProductRepository(products = listOf(product7))
         val viewModel = WishlistViewModel(repo, productRepository)
+        launchUiStateCollector(viewModel)
 
         viewModel.updateQuantity(7, +1)
         advanceUntilIdle()
 
         assertEquals(1, repo.refreshCount)
         assertEquals(listOf(70 to 2), repo.updatedQuantities)
-        assertEquals(listOf(product7), viewModel.products.value)
-        assertNull(viewModel.errorMessage.value)
+        assertEquals(listOf(product7), viewModel.uiState.value.products)
+        assertNull(viewModel.uiState.value.errorMessage)
     }
 
     @Test
@@ -149,6 +158,7 @@ class WishlistViewModelTest {
         val repo = FakeWishlistRepository(wishlistItems = mapOf(7 to 70))
         val productRepository = FakeProductRepository(products = listOf(existingProduct))
         val viewModel = WishlistViewModel(repo, productRepository)
+        launchUiStateCollector(viewModel)
 
         viewModel.loadProducts()
         advanceUntilIdle()
@@ -156,9 +166,9 @@ class WishlistViewModelTest {
         viewModel.updateQuantity(7, +1)
         advanceUntilIdle()
 
-        assertEquals("Failed to update wishlist item.", viewModel.errorMessage.value)
-        assertEquals(emptySet<Int>(), viewModel.updatingQuantityIds.value)
-        assertEquals(listOf(existingProduct), viewModel.products.value)
+        assertEquals("Failed to update wishlist item.", viewModel.uiState.value.errorMessage)
+        assertEquals(emptySet<Int>(), viewModel.uiState.value.updatingQuantityIds)
+        assertEquals(listOf(existingProduct), viewModel.uiState.value.products)
     }
 
     @Test
@@ -170,11 +180,12 @@ class WishlistViewModelTest {
         )
         val productRepository = FakeProductRepository(products = listOf(product7))
         val viewModel = WishlistViewModel(repo, productRepository)
+        launchUiStateCollector(viewModel)
 
         viewModel.updateQuantity(7, +1)
         advanceUntilIdle()
 
-        assertEquals(listOf(product7), viewModel.products.value)
+        assertEquals(listOf(product7), viewModel.uiState.value.products)
     }
 
     @Test
@@ -183,11 +194,12 @@ class WishlistViewModelTest {
             removeCompletelyError = AppException(AppError.ServerError(userMessage = "Failed to remove wishlist item."))
         )
         val viewModel = WishlistViewModel(repo, FakeProductRepository())
+        launchUiStateCollector(viewModel)
 
         viewModel.removeCompletely(7)
         advanceUntilIdle()
 
-        assertEquals("Failed to remove wishlist item.", viewModel.errorMessage.value)
+        assertEquals("Failed to remove wishlist item.", viewModel.uiState.value.errorMessage)
     }
 
     @Test
@@ -197,16 +209,17 @@ class WishlistViewModelTest {
         val repo = FakeWishlistRepository(wishlistItems = mapOf(7 to 70, 8 to 80))
         val productRepository = FakeProductRepository(products = listOf(product7, product8))
         val viewModel = WishlistViewModel(repo, productRepository)
+        launchUiStateCollector(viewModel)
 
         viewModel.loadProducts()
         advanceUntilIdle()
 
-        assertEquals(listOf(product7, product8), viewModel.products.value)
+        assertEquals(listOf(product7, product8), viewModel.uiState.value.products)
 
         viewModel.removeCompletely(7)
         advanceUntilIdle()
 
-        assertEquals(listOf(product8), viewModel.products.value)
+        assertEquals(listOf(product8), viewModel.uiState.value.products)
     }
 
     @Test
@@ -218,19 +231,20 @@ class WishlistViewModelTest {
         )
         val productRepository = FakeProductRepository(products = listOf(product7))
         val viewModel = WishlistViewModel(repo, productRepository)
+        launchUiStateCollector(viewModel)
 
         viewModel.loadProducts()
         advanceUntilIdle()
 
-        assertEquals(listOf(product7), viewModel.products.value)
+        assertEquals(listOf(product7), viewModel.uiState.value.products)
 
         viewModel.removeCompletely(7)
         advanceUntilIdle()
 
-        assertEquals(emptyMap<Int, Int>(), viewModel.wishlist.value)
-        assertEquals(emptyList<WishlistItem>(), viewModel.items.value)
-        assertEquals(emptyList<Product>(), viewModel.products.value)
-        assertNull(viewModel.errorMessage.value)
+        assertEquals(emptyMap<Int, Int>(), viewModel.uiState.value.wishlist)
+        assertEquals(emptyList<WishlistItem>(), viewModel.uiState.value.items)
+        assertEquals(emptyList<Product>(), viewModel.uiState.value.products)
+        assertNull(viewModel.uiState.value.errorMessage)
     }
 
     @Test
@@ -242,6 +256,7 @@ class WishlistViewModelTest {
         )
         val productRepository = FakeProductRepository(products = listOf(existingProduct))
         val viewModel = WishlistViewModel(repo, productRepository)
+        launchUiStateCollector(viewModel)
 
         viewModel.loadProducts()
         advanceUntilIdle()
@@ -249,8 +264,8 @@ class WishlistViewModelTest {
         viewModel.removeCompletely(7)
         advanceUntilIdle()
 
-        assertEquals(listOf(existingProduct), viewModel.products.value)
-        assertEquals("Failed to remove wishlist item.", viewModel.errorMessage.value)
+        assertEquals(listOf(existingProduct), viewModel.uiState.value.products)
+        assertEquals("Failed to remove wishlist item.", viewModel.uiState.value.errorMessage)
     }
 
     @Test
@@ -258,16 +273,17 @@ class WishlistViewModelTest {
         val removeGate = CompletableDeferred<Unit>()
         val repo = FakeWishlistRepository(removeCompletelyGate = removeGate)
         val viewModel = WishlistViewModel(repo, FakeProductRepository())
+        launchUiStateCollector(viewModel)
 
         viewModel.removeCompletely(7)
         advanceUntilIdle()
 
-        assertEquals(setOf(7), viewModel.removingProductIds.value)
+        assertEquals(setOf(7), viewModel.uiState.value.removingProductIds)
 
         removeGate.complete(Unit)
         advanceUntilIdle()
 
-        assertEquals(emptySet<Int>(), viewModel.removingProductIds.value)
+        assertEquals(emptySet<Int>(), viewModel.uiState.value.removingProductIds)
     }
 
     @Test
@@ -276,12 +292,13 @@ class WishlistViewModelTest {
             removeCompletelyError = AppException(AppError.ServerError(userMessage = "Failed to remove wishlist item."))
         )
         val viewModel = WishlistViewModel(repo, FakeProductRepository())
+        launchUiStateCollector(viewModel)
 
         viewModel.removeCompletely(7)
         advanceUntilIdle()
 
-        assertEquals(emptySet<Int>(), viewModel.removingProductIds.value)
-        assertEquals("Failed to remove wishlist item.", viewModel.errorMessage.value)
+        assertEquals(emptySet<Int>(), viewModel.uiState.value.removingProductIds)
+        assertEquals("Failed to remove wishlist item.", viewModel.uiState.value.errorMessage)
     }
 
     @Test
@@ -289,16 +306,17 @@ class WishlistViewModelTest {
         val removeGate = CompletableDeferred<Unit>()
         val repo = FakeWishlistRepository(removeCompletelyGate = removeGate)
         val viewModel = WishlistViewModel(repo, FakeProductRepository())
+        launchUiStateCollector(viewModel)
 
         viewModel.removeCompletely(7)
         advanceUntilIdle()
 
-        assertEquals(setOf(7), viewModel.removingProductIds.value)
+        assertEquals(setOf(7), viewModel.uiState.value.removingProductIds)
 
         viewModel.reset()
         advanceUntilIdle()
 
-        assertEquals(emptySet<Int>(), viewModel.removingProductIds.value)
+        assertEquals(emptySet<Int>(), viewModel.uiState.value.removingProductIds)
         removeGate.complete(Unit)
     }
 
@@ -311,16 +329,17 @@ class WishlistViewModelTest {
             updateQuantityGate = updateGate
         )
         val viewModel = WishlistViewModel(repo, FakeProductRepository())
+        launchUiStateCollector(viewModel)
 
         viewModel.updateQuantity(7, +1)
         advanceUntilIdle()
 
-        assertEquals(setOf(7), viewModel.updatingQuantityIds.value)
+        assertEquals(setOf(7), viewModel.uiState.value.updatingQuantityIds)
 
         viewModel.reset()
         advanceUntilIdle()
 
-        assertEquals(emptySet<Int>(), viewModel.updatingQuantityIds.value)
+        assertEquals(emptySet<Int>(), viewModel.uiState.value.updatingQuantityIds)
         updateGate.complete(Unit)
     }
 
@@ -330,12 +349,13 @@ class WishlistViewModelTest {
             clearWishlistError = AppException(AppError.ServerError(userMessage = "Failed to clear wishlist."))
         )
         val viewModel = WishlistViewModel(repo, FakeProductRepository())
+        launchUiStateCollector(viewModel)
 
         viewModel.clearWishlist()
         advanceUntilIdle()
 
-        assertEquals("Failed to clear wishlist.", viewModel.errorMessage.value)
-        assertFalse(viewModel.isClearing.value)
+        assertEquals("Failed to clear wishlist.", viewModel.uiState.value.errorMessage)
+        assertFalse(viewModel.uiState.value.isClearing)
     }
 
     @Test
@@ -344,12 +364,19 @@ class WishlistViewModelTest {
             FakeWishlistRepository(refreshError = AppException(AppError.NetworkError())),
             FakeProductRepository()
         )
+        launchUiStateCollector(viewModel)
 
         viewModel.refresh()
         advanceUntilIdle()
         viewModel.clearError()
 
-        assertNull(viewModel.errorMessage.value)
+        assertNull(viewModel.uiState.value.errorMessage)
+    }
+
+    private fun TestScope.launchUiStateCollector(viewModel: WishlistViewModel) {
+        backgroundScope.launch {
+            viewModel.uiState.collect()
+        }
     }
 
     private class FakeWishlistRepository(

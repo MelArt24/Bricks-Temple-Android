@@ -46,17 +46,18 @@ fun WishlistScreen(
     paddingValues: PaddingValues,
     cartViewModel: CartViewModel
 ) {
-    val wishlist = wishlistViewModel.wishlist.collectAsState().value
-    val updating = wishlistViewModel.isUpdating.collectAsState().value
-    val updatingQuantityIds = wishlistViewModel.updatingQuantityIds.collectAsState().value
-    val removingProductIds = wishlistViewModel.removingProductIds.collectAsState().value
-    val isClearing = wishlistViewModel.isClearing.collectAsState().value
-    val isLoading = wishlistViewModel.isLoading.collectAsState().value
+    val state = wishlistViewModel.uiState.collectAsState().value
+    val wishlist = state.wishlist
+    val updating = state.updatingIds
+    val updatingQuantityIds = state.updatingQuantityIds
+    val removingProductIds = state.removingProductIds
+    val isClearing = state.isClearing
+    val isLoading = state.isLoading
     val cart = cartViewModel.cart.collectAsState().value
-    val errorMessage = wishlistViewModel.errorMessage.collectAsState().value
+    val errorMessage = state.errorMessage
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val products = wishlistViewModel.products.collectAsState().value
+    val products = state.products
 
     val productIds = wishlist.keys.toList()
 
@@ -64,7 +65,7 @@ fun WishlistScreen(
         wishlistViewModel.loadProducts()
     }
 
-    val itemDtos = wishlistViewModel.items.collectAsState().value
+    val itemDtos = state.items
     val itemMap = itemDtos.associateBy { it.productId }
 
     var refreshing by remember { mutableStateOf(false) }
