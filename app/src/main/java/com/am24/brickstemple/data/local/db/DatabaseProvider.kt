@@ -13,7 +13,9 @@ object DatabaseProvider {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "bricks_temple.db"
-            ).fallbackToDestructiveMigration()
+            )
+                .addMigrations(DatabaseMigrations.MIGRATION_1_2)
+                .fallbackToDestructiveMigration()
                 .build().also { INSTANCE = it }
         }
     }
