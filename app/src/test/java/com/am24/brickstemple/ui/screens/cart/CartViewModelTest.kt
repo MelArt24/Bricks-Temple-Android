@@ -9,12 +9,19 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class CartViewModelTest {
 
     @get:Rule
@@ -48,52 +55,61 @@ class CartViewModelTest {
     }
 
     @Test
-    fun `checkout calls repo and sets result`() {
+    fun `checkout calls repo and sets result`() = runTest {
+        launchUiStateCollector()
         coEvery { repo.checkout() } returns 123
 
         viewModel.checkout()
+        advanceUntilIdle()
 
         coVerify(exactly = 1) { repo.checkout() }
-        assertEquals(123, viewModel.checkoutResult.value)
-        assertFalse(viewModel.checkoutInProgress.value)
+        assertEquals(123, viewModel.uiState.value.checkoutResult)
+        assertFalse(viewModel.uiState.value.checkoutInProgress)
     }
 
     @Test
-    fun `checkout failure exposes error message and resets progress`() {
+    fun `checkout failure exposes error message and resets progress`() = runTest {
+        launchUiStateCollector()
         coEvery { repo.checkout() } throws AppException(
             AppError.ServerError(userMessage = "Checkout failed")
         )
 
         viewModel.checkout()
+        advanceUntilIdle()
 
-        assertEquals("Checkout failed", viewModel.errorMessage.value)
-        assertFalse(viewModel.checkoutInProgress.value)
-        assertNull(viewModel.checkoutResult.value)
+        assertEquals("Checkout failed", viewModel.uiState.value.errorMessage)
+        assertFalse(viewModel.uiState.value.checkoutInProgress)
+        assertNull(viewModel.uiState.value.checkoutResult)
     }
 
     @Test
-    fun `checkout unauthorized sets unauthorized without error message`() {
+    fun `checkout unauthorized sets unauthorized without error message`() = runTest {
+        launchUiStateCollector()
         coEvery { repo.checkout() } throws AppException(AppError.UnauthorizedError())
 
         viewModel.checkout()
+        advanceUntilIdle()
 
-        assertTrue(viewModel.unauthorized.value)
-        assertNull(viewModel.errorMessage.value)
-        assertFalse(viewModel.checkoutInProgress.value)
+        assertTrue(viewModel.uiState.value.unauthorized)
+        assertNull(viewModel.uiState.value.errorMessage)
+        assertFalse(viewModel.uiState.value.checkoutInProgress)
     }
 
     @Test
-    fun `checkout failure does not clear cart state`() {
+    fun `checkout failure does not clear cart state`() = runTest {
+        launchUiStateCollector()
         val cartState = MutableStateFlow(mapOf(5 to 2))
         every { repo.cart } returns cartState
 
         viewModel = CartViewModel(repo, productRepository)
+        launchUiStateCollector()
 
         coEvery { repo.checkout() } throws AppException(
             AppError.NetworkError("No internet connection.")
         )
 
         viewModel.checkout()
+        advanceUntilIdle()
 
         assertEquals(mapOf(5 to 2), viewModel.cart.value)
     }
@@ -117,41 +133,47 @@ class CartViewModelTest {
     }
 
     @Test
-    fun `addProduct failure exposes error message`() {
+    fun `addProduct failure exposes error message`() = runTest {
+        launchUiStateCollector()
         val productId = 10
         coEvery { repo.add(productId) } throws AppException(
             AppError.ServerError(userMessage = "Failed to add cart item.")
         )
 
         viewModel.addProduct(productId)
+        advanceUntilIdle()
 
-        assertEquals("Failed to add cart item.", viewModel.errorMessage.value)
+        assertEquals("Failed to add cart item.", viewModel.uiState.value.errorMessage)
     }
 
     @Test
-    fun `updateQuantity with positive delta calls repo updateQuantity`() {
+    fun `updateQuantity with positive delta calls repo updateQuantity`() = runTest {
+        launchUiStateCollector()
         val productId = 5
 
         every { repo.cart } returns MutableStateFlow(mapOf(productId to 2))
 
         viewModel.updateQuantity(productId, delta = +1)
+        advanceUntilIdle()
 
         coVerify(exactly = 1) { repo.updateQuantity(productId, 3) }
 
-        assertNull(viewModel.updatingQuantity.value)
+        assertNull(viewModel.uiState.value.updatingQuantityProductId)
     }
 
     @Test
-    fun `updateQuantity with non-positive result removes item completely`() {
+    fun `updateQuantity with non-positive result removes item completely`() = runTest {
+        launchUiStateCollector()
         val productId = 5
 
         every { repo.cart } returns MutableStateFlow(mapOf(productId to 1))
 
         viewModel.updateQuantity(productId, delta = -1)
+        advanceUntilIdle()
 
         coVerify(exactly = 1) { repo.removeCompletely(productId) }
         coVerify(exactly = 0) { repo.updateQuantity(any(), any()) }
-        assertNull(viewModel.updatingQuantity.value)
+        assertNull(viewModel.uiState.value.updatingQuantityProductId)
     }
 
     @Test
@@ -171,31 +193,33 @@ class CartViewModelTest {
     }
 
     @Test
-    fun `clearCheckoutResult sets result to null`() {
-        val orderId = 99
+    fun `clearCheckoutResult sets result to null`() = runTest {
+        launchUiStateCollector()
+        coEvery { repo.checkout() } returns 99
 
-        val field = CartViewModel::class.java.getDeclaredField("_checkoutResult")
-        field.isAccessible = true
-        @Suppress("UNCHECKED_CAST")
-        val state = field.get(viewModel) as MutableStateFlow<Int?>
-        state.value = orderId
+        viewModel.checkout()
+        advanceUntilIdle()
 
         viewModel.clearCheckoutResult()
+        advanceUntilIdle()
 
-        assertNull(viewModel.checkoutResult.value)
+        assertNull(viewModel.uiState.value.checkoutResult)
     }
 
     @Test
-    fun `reset calls clearLocal and clears updatingQuantity`() {
-        val field = CartViewModel::class.java.getDeclaredField("_updatingQuantity")
-        field.isAccessible = true
-        @Suppress("UNCHECKED_CAST")
-        val state = field.get(viewModel) as MutableStateFlow<Int?>
-        state.value = 123
+    fun `reset calls clearLocal and clears updatingQuantity`() = runTest {
+        launchUiStateCollector()
 
         viewModel.reset()
+        advanceUntilIdle()
 
         coVerify(exactly = 1) { repo.clearLocal() }
-        assertNull(viewModel.updatingQuantity.value)
+        assertNull(viewModel.uiState.value.updatingQuantityProductId)
+    }
+
+    private fun TestScope.launchUiStateCollector() {
+        backgroundScope.launch {
+            viewModel.uiState.collect()
+        }
     }
 }

@@ -11,7 +11,7 @@ import org.koin.dsl.module
 
 val viewModelModule = module {
     viewModel { ProductViewModel(repo = get()) }
-    viewModel { CartViewModel(repo = get(), productRepository = get()) }
+    viewModel { CartViewModel(cartRepository = get(), productRepository = get()) }
     viewModel { WishlistViewModel(repo = get(), productRepository = get()) }
     viewModel { OrderViewModel(repo = get(), productRepository = get()) }
     viewModel { AuthViewModel(authRepository = get()) }

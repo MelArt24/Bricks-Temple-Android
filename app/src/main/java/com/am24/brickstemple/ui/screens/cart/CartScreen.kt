@@ -27,19 +27,18 @@ fun CartScreen(
     viewModel: CartViewModel,
     paddingValues: PaddingValues
 ) {
-    val cartMap = viewModel.cart.collectAsState().value
-    val isUpdating = viewModel.isUpdating.collectAsState().value
-    val updatingQty = viewModel.updatingQuantity.collectAsState().value
-    val isClearing = viewModel.isClearing.collectAsState().value
-    val isLoading = viewModel.isLoading.collectAsState().value
-
-    val checkoutInProgress = viewModel.checkoutInProgress.collectAsState().value
-    val checkoutResult = viewModel.checkoutResult.collectAsState().value
-
-    val products = viewModel.products.collectAsState().value
+    val state = viewModel.uiState.collectAsState().value
+    val cartMap = state.cart
+    val isUpdating = state.updatingIds
+    val updatingQty = state.updatingQuantityProductId
+    val isClearing = state.isClearing
+    val isLoading = state.isLoading
+    val checkoutInProgress = state.checkoutInProgress
+    val checkoutResult = state.checkoutResult
+    val products = state.products
     val productIds = cartMap.keys.toList()
 
-    val unauthorized by viewModel.unauthorized.collectAsState()
+    val unauthorized = state.unauthorized
 
     LaunchedEffect(productIds) {
         viewModel.loadProducts()
