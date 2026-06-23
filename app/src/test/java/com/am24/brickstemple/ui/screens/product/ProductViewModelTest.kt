@@ -47,8 +47,8 @@ class ProductViewModelTest {
     fun `initial load fills category lists`() = runTest {
         advanceUntilIdle()
 
-        assertTrue(vm.sets.value.products.isNotEmpty())
-        assertTrue(vm.minifigs.value.products.isNotEmpty())
+        assertTrue(vm.uiState.value.sets.products.isNotEmpty())
+        assertTrue(vm.uiState.value.minifigs.products.isNotEmpty())
     }
 
     @Test
@@ -58,7 +58,7 @@ class ProductViewModelTest {
         vm.search("Falcon")
         advanceUntilIdle()
 
-        val result = vm.searchResult.value.products
+        val result = vm.uiState.value.searchResult.products
         assertEquals(1, result.size)
         assertEquals("Millennium Falcon", result.first().name)
     }
@@ -68,7 +68,7 @@ class ProductViewModelTest {
         vm.loadById(1)
         advanceUntilIdle()
 
-        val result = vm.productById.value.products
+        val result = vm.uiState.value.productById.products
         assertEquals(1, result.first().id)
     }
 
@@ -76,7 +76,7 @@ class ProductViewModelTest {
     fun `loadLocalCache loads sets correctly`() = runTest {
         advanceUntilIdle()
 
-        val sets = vm.sets.value.products
+        val sets = vm.uiState.value.sets.products
         assertEquals(2, sets.count { it.type == "set" })
     }
 
@@ -88,7 +88,7 @@ class ProductViewModelTest {
         vm.loadById(1)
         advanceUntilIdle()
 
-        val state = vm.productById.value
+        val state = vm.uiState.value.productById
 
         assertFalse(state.isLoading)
         assertNotNull(state.products.firstOrNull())
@@ -106,7 +106,7 @@ class ProductViewModelTest {
         vm.loadById(1)
         advanceUntilIdle()
 
-        val state = vm.productById.value
+        val state = vm.uiState.value.productById
 
         assertTrue(state.products.isEmpty())
         assertNotNull(state.error)
@@ -123,7 +123,7 @@ class ProductViewModelTest {
         vm.loadById(1)
         advanceUntilIdle()
 
-        assertEquals("No internet connection.", vm.productById.value.error)
+        assertEquals("No internet connection.", vm.uiState.value.productById.error)
     }
 
     @Test
@@ -136,7 +136,7 @@ class ProductViewModelTest {
         vm.search("Falcon")
         advanceUntilIdle()
 
-        assertEquals("Unexpected error occurred.", vm.searchResult.value.error)
+        assertEquals("Unexpected error occurred.", vm.uiState.value.searchResult.error)
     }
 
     @Test
@@ -149,7 +149,7 @@ class ProductViewModelTest {
         vm.applyFilters(type = "set", minPrice = null, maxPrice = null, year = null)
         advanceUntilIdle()
 
-        assertEquals("Failed to filter products.", vm.filteredProducts.value.error)
+        assertEquals("Failed to filter products.", vm.uiState.value.filteredProducts.error)
     }
 
     @Test
@@ -162,7 +162,7 @@ class ProductViewModelTest {
         vm.loadById(1)
         advanceUntilIdle()
 
-        assertNull(vm.productById.value.error)
+        assertNull(vm.uiState.value.productById.error)
     }
 
     @Test
@@ -173,9 +173,9 @@ class ProductViewModelTest {
         val vm = ProductViewModel(repo)
         advanceUntilIdle()
 
-        assertEquals("Local data error. Please try again.", vm.sets.value.error)
-        assertEquals("Local data error. Please try again.", vm.minifigs.value.error)
-        assertFalse(vm.loading.value)
+        assertEquals("Local data error. Please try again.", vm.uiState.value.sets.error)
+        assertEquals("Local data error. Please try again.", vm.uiState.value.minifigs.error)
+        assertFalse(vm.uiState.value.isLoading)
     }
 
     @Test
@@ -193,7 +193,7 @@ class ProductViewModelTest {
     fun `matchesQuery finds product by name`() = runTest {
         advanceUntilIdle()
 
-        val falcon = vm.sets.value.products.first { it.id == 1 }
+        val falcon = vm.uiState.value.sets.products.first { it.id == 1 }
 
         assertTrue(vm.matchesQuery(falcon, "falcon"))
         assertTrue(vm.matchesQuery(falcon, "MILLENNIUM"))
@@ -204,7 +204,7 @@ class ProductViewModelTest {
     fun `matchesQuery finds product by partial name`() = runTest {
         advanceUntilIdle()
 
-        val police = vm.sets.value.products.first { it.id == 3 }
+        val police = vm.uiState.value.sets.products.first { it.id == 3 }
 
         assertTrue(vm.matchesQuery(police, "pol"))
         assertTrue(vm.matchesQuery(police, "station"))
@@ -215,7 +215,7 @@ class ProductViewModelTest {
     fun `matchesQuery returns false for unrelated query`() = runTest {
         advanceUntilIdle()
 
-        val falcon = vm.sets.value.products.first { it.id == 1 }
+        val falcon = vm.uiState.value.sets.products.first { it.id == 1 }
 
         assertFalse(vm.matchesQuery(falcon, "technic"))
         assertFalse(vm.matchesQuery(falcon, "creator"))
@@ -226,7 +226,7 @@ class ProductViewModelTest {
     fun `matchesQuery returns true for blank query`() = runTest {
         advanceUntilIdle()
 
-        val pilot = vm.minifigs.value.products.first { it.id == 2 }
+        val pilot = vm.uiState.value.minifigs.products.first { it.id == 2 }
 
         assertTrue(vm.matchesQuery(pilot, ""))
         assertTrue(vm.matchesQuery(pilot, "   "))
@@ -236,7 +236,7 @@ class ProductViewModelTest {
     fun `matchesQuery finds product by number`() = runTest {
         advanceUntilIdle()
 
-        val falcon = vm.sets.value.products.first { it.id == 1 }
+        val falcon = vm.uiState.value.sets.products.first { it.id == 1 }
 
         assertTrue(vm.matchesQuery(falcon, "75192"))
     }

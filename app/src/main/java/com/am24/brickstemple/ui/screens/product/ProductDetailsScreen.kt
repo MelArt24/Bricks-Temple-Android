@@ -37,7 +37,7 @@ fun ProductDetailsScreen(
         productViewModel.loadById(id)
     }
 
-    val productState = productViewModel.productById.collectAsState().value
+    val productState = productViewModel.uiState.collectAsState().value.productById
     val p = productState.products.firstOrNull()
 
     val wishlist = wishlistViewModel.wishlist.collectAsState().value

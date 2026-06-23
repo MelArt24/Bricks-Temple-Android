@@ -27,11 +27,7 @@ fun ProductListScreen(
     wishlistViewModel: WishlistViewModel,
     cartViewModel: CartViewModel
 ) {
-    val setsState = productViewModel.sets.collectAsState().value
-    val minifigsState = productViewModel.minifigs.collectAsState().value
-    val detailsState = productViewModel.details.collectAsState().value
-    val polybagsState = productViewModel.polybags.collectAsState().value
-    val othersState = productViewModel.others.collectAsState().value
+    val state = productViewModel.uiState.collectAsState().value
 
     val wishlist = wishlistViewModel.wishlist.collectAsState().value
     val updating = wishlistViewModel.isUpdating.collectAsState().value
@@ -91,11 +87,11 @@ fun ProductListScreen(
     )
 
     val blocks = listOf(
-        CategoryBlock("Sets", "sets", setsState.products),
-        CategoryBlock("Minifigures", "minifigures", minifigsState.products),
-        CategoryBlock("Details", "details", detailsState.products),
-        CategoryBlock("Polybags", "polybags", polybagsState.products),
-        CategoryBlock("Other", "other", othersState.products)
+        CategoryBlock("Sets", "sets", state.sets.products),
+        CategoryBlock("Minifigures", "minifigures", state.minifigs.products),
+        CategoryBlock("Details", "details", state.details.products),
+        CategoryBlock("Polybags", "polybags", state.polybags.products),
+        CategoryBlock("Other", "other", state.others.products)
     )
 
     Box(Modifier.padding(paddingValues)) {

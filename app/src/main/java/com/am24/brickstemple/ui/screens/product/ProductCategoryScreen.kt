@@ -44,17 +44,18 @@ fun ProductCategoryScreen(
         else -> "other"
     }
 
-    val state by when (type) {
-        "set" -> productViewModel.sets.collectAsState()
-        "minifigure" -> productViewModel.minifigs.collectAsState()
-        "detail" -> productViewModel.details.collectAsState()
-        "polybag" -> productViewModel.polybags.collectAsState()
-        else -> productViewModel.others.collectAsState()
+    val productState = productViewModel.uiState.collectAsState().value
+    val state = when (type) {
+        "set" -> productState.sets
+        "minifigure" -> productState.minifigs
+        "detail" -> productState.details
+        "polybag" -> productState.polybags
+        else -> productState.others
     }
 
-    val filters by productViewModel.filters.collectAsState()
-    val filteredState by productViewModel.filteredProducts.collectAsState()
-    val sortOrder by productViewModel.sortOrder.collectAsState()
+    val filters = productState.filters
+    val filteredState = productState.filteredProducts
+    val sortOrder = productState.sortOrder
 
     val hasFilters = filters.minPrice != null ||
             filters.maxPrice != null ||
@@ -67,7 +68,7 @@ fun ProductCategoryScreen(
     val baseProducts =
         if (hasFilters) filteredState.products else state.products
 
-    val searchQuery by productViewModel.searchQuery.collectAsState()
+    val searchQuery = productState.searchQuery
 
     val productsToShow = remember(baseProducts, sortOrder, searchQuery) {
 

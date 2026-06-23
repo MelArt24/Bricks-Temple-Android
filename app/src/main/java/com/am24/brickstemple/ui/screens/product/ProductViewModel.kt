@@ -9,7 +9,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-data class ProductUiState(
+data class ProductResultUiState(
     val isLoading: Boolean = false,
     val products: List<Product> = emptyList(),
     val error: String? = null
@@ -29,47 +29,40 @@ enum class SortOrder {
     NONE
 }
 
+data class ProductUiState(
+    val sets: ProductResultUiState = ProductResultUiState(),
+    val minifigs: ProductResultUiState = ProductResultUiState(),
+    val details: ProductResultUiState = ProductResultUiState(),
+    val polybags: ProductResultUiState = ProductResultUiState(),
+    val others: ProductResultUiState = ProductResultUiState(),
+    val searchResult: ProductResultUiState = ProductResultUiState(),
+    val productById: ProductResultUiState = ProductResultUiState(),
+    val filteredProducts: ProductResultUiState = ProductResultUiState(),
+    val filters: FilterState = FilterState(),
+    val sortOrder: SortOrder = SortOrder.NONE,
+    val searchQuery: String = "",
+    val isLoading: Boolean = true
+)
+
 
 class ProductViewModel(
     private val repo: ProductRepository
 ) : ViewModel() {
 
-    private val _sets = MutableStateFlow(ProductUiState())
-    val sets = _sets.asStateFlow()
+    private val _uiState = MutableStateFlow(ProductUiState())
+    val uiState: StateFlow<ProductUiState> = _uiState.asStateFlow()
 
-    private val _minifigs = MutableStateFlow(ProductUiState())
-    val minifigs = _minifigs.asStateFlow()
-
-    private val _details = MutableStateFlow(ProductUiState())
-    val details = _details.asStateFlow()
-
-    private val _polybags = MutableStateFlow(ProductUiState())
-    val polybags = _polybags.asStateFlow()
-
-    private val _others = MutableStateFlow(ProductUiState())
-    val others = _others.asStateFlow()
-
-    private val _searchResult = MutableStateFlow(ProductUiState())
-    val searchResult = _searchResult.asStateFlow()
-
-    private val _loading = MutableStateFlow(true)
-    val loading = _loading.asStateFlow()
-
-    private val _filters = MutableStateFlow(FilterState())
-    val filters = _filters.asStateFlow()
-
-    private val _filteredProducts = MutableStateFlow(ProductUiState())
-    val filteredProducts = _filteredProducts.asStateFlow()
-
-    private val _sortOrder = MutableStateFlow(SortOrder.NONE)
-    val sortOrder = _sortOrder.asStateFlow()
-
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery = _searchQuery.asStateFlow()
+    val searchQuery: StateFlow<String> = _uiState
+        .map { it.searchQuery }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = _uiState.value.searchQuery
+        )
 
     init {
         viewModelScope.launch {
-            _loading.value = true
+            _uiState.update { it.copy(isLoading = true) }
 
             loadLocalCacheSafely()
 
@@ -79,13 +72,13 @@ class ProductViewModel(
                 if (e is CancellationException) throw e
             } finally {
                 loadLocalCacheSafely()
-                _loading.value = false
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
 
     fun setSearchQuery(query: String) {
-        _searchQuery.value = query
+        _uiState.update { it.copy(searchQuery = query) }
     }
 
     fun matchesQuery(product: Product, query: String): Boolean {
@@ -100,24 +93,25 @@ class ProductViewModel(
     }
 
     private suspend fun loadLocalCacheSafely() {
-        loadCategorySafely(_sets, "set")
-        loadCategorySafely(_minifigs, "minifigure")
-        loadCategorySafely(_details, "detail")
-        loadCategorySafely(_polybags, "polybag")
-        loadCategorySafely(_others, "other")
+        loadCategorySafely("set")
+        loadCategorySafely("minifigure")
+        loadCategorySafely("detail")
+        loadCategorySafely("polybag")
+        loadCategorySafely("other")
     }
 
-    private suspend fun loadCategorySafely(
-        state: MutableStateFlow<ProductUiState>,
-        type: String
-    ) {
+    private suspend fun loadCategorySafely(type: String) {
         try {
-            state.value = ProductUiState(products = repo.getCachedByType(type))
+            setCategoryState(type, ProductResultUiState(products = repo.getCachedByType(type)))
         } catch (e: Exception) {
             if (e is CancellationException) throw e
-            state.value = state.value.copy(
-                isLoading = false,
-                error = e.toUserMessage()
+            val current = categoryState(type)
+            setCategoryState(
+                type,
+                current.copy(
+                    isLoading = false,
+                    error = e.toUserMessage()
+                )
             )
         }
     }
@@ -125,38 +119,51 @@ class ProductViewModel(
     fun search(query: String) {
         viewModelScope.launch {
             if (query.isBlank()) {
-                _searchResult.value = ProductUiState(products = emptyList())
+                _uiState.update {
+                    it.copy(searchResult = ProductResultUiState(products = emptyList()))
+                }
                 return@launch
             }
 
-            _searchResult.value = ProductUiState(isLoading = true)
+            _uiState.update {
+                it.copy(searchResult = ProductResultUiState(isLoading = true))
+            }
 
             try {
                 val result = repo.searchLocal(query)
-                _searchResult.value = ProductUiState(products = result)
+                _uiState.update {
+                    it.copy(searchResult = ProductResultUiState(products = result))
+                }
             } catch (e: Exception) {
-                _searchResult.value = ProductUiState(error = e.toUserMessage())
+                _uiState.update {
+                    it.copy(searchResult = ProductResultUiState(error = e.toUserMessage()))
+                }
             }
         }
     }
 
-    private val _productById = MutableStateFlow(ProductUiState())
-    val productById = _productById.asStateFlow()
-
     fun loadById(id: Int) {
         viewModelScope.launch {
-            _productById.value = ProductUiState(isLoading = true)
+            _uiState.update {
+                it.copy(productById = ProductResultUiState(isLoading = true))
+            }
 
             try {
                 val local = repo.getLocalById(id)
                 if (local != null)
-                    _productById.value = ProductUiState(products = listOf(local))
+                    _uiState.update {
+                        it.copy(productById = ProductResultUiState(products = listOf(local)))
+                    }
 
                 val updated = repo.getById(id)
-                _productById.value = ProductUiState(products = listOf(updated))
+                _uiState.update {
+                    it.copy(productById = ProductResultUiState(products = listOf(updated)))
+                }
 
             } catch (e: Exception) {
-                _productById.value = ProductUiState(error = e.toUserMessage())
+                _uiState.update {
+                    it.copy(productById = ProductResultUiState(error = e.toUserMessage()))
+                }
             }
         }
     }
@@ -172,9 +179,10 @@ class ProductViewModel(
     }
 
     fun setSort(order: SortOrder) {
-        _sortOrder.value = order
+        _uiState.update { it.copy(sortOrder = order) }
 
-        val f = _filters.value
+        val state = _uiState.value
+        val f = state.filters
         val type = fTypeFromFilters()
 
         if (f.minPrice != null || f.maxPrice != null || f.year != null) {
@@ -183,19 +191,21 @@ class ProductViewModel(
         }
 
         val list = when (type) {
-            "set" -> sets.value.products
-            "minifigure" -> minifigs.value.products
-            "detail" -> details.value.products
-            "polybag" -> polybags.value.products
-            else -> others.value.products
+            "set" -> state.sets.products
+            "minifigure" -> state.minifigs.products
+            "detail" -> state.details.products
+            "polybag" -> state.polybags.products
+            else -> state.others.products
         }
 
         val sorted = applySorting(list, order)
-        _filteredProducts.value = ProductUiState(products = sorted)
+        _uiState.update {
+            it.copy(filteredProducts = ProductResultUiState(products = sorted))
+        }
     }
 
     private fun fTypeFromFilters(): String {
-        return when (_filters.value) {
+        return when (_uiState.value.filters) {
             else -> ""
         }
     }
@@ -207,9 +217,13 @@ class ProductViewModel(
         year: String?
     ) {
         viewModelScope.launch {
-            _filteredProducts.value = ProductUiState(isLoading = true)
+            _uiState.update {
+                it.copy(filteredProducts = ProductResultUiState(isLoading = true))
+            }
 
-            _filters.value = FilterState(minPrice, maxPrice, year)
+            _uiState.update {
+                it.copy(filters = FilterState(minPrice, maxPrice, year))
+            }
 
             try {
                 val result = repo.getFiltered(
@@ -218,11 +232,37 @@ class ProductViewModel(
                     maxPrice = maxPrice,
                     year = year
                 )
-                val sorted = applySorting(result, _sortOrder.value)
+                val sorted = applySorting(result, _uiState.value.sortOrder)
 
-                _filteredProducts.value = ProductUiState(products = sorted)
+                _uiState.update {
+                    it.copy(filteredProducts = ProductResultUiState(products = sorted))
+                }
             } catch (e: Exception) {
-                _filteredProducts.value = ProductUiState(error = e.toUserMessage())
+                _uiState.update {
+                    it.copy(filteredProducts = ProductResultUiState(error = e.toUserMessage()))
+                }
+            }
+        }
+    }
+
+    private fun categoryState(type: String): ProductResultUiState {
+        return when (type) {
+            "set" -> _uiState.value.sets
+            "minifigure" -> _uiState.value.minifigs
+            "detail" -> _uiState.value.details
+            "polybag" -> _uiState.value.polybags
+            else -> _uiState.value.others
+        }
+    }
+
+    private fun setCategoryState(type: String, state: ProductResultUiState) {
+        _uiState.update {
+            when (type) {
+                "set" -> it.copy(sets = state)
+                "minifigure" -> it.copy(minifigs = state)
+                "detail" -> it.copy(details = state)
+                "polybag" -> it.copy(polybags = state)
+                else -> it.copy(others = state)
             }
         }
     }
