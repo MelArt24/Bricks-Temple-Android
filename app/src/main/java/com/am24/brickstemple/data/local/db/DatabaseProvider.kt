@@ -14,7 +14,7 @@ object DatabaseProvider {
                 AppDatabase::class.java,
                 "bricks_temple.db"
             )
-                .addMigrations(DatabaseMigrations.MIGRATION_1_2)
+                .addMigrations(*DatabaseMigrations.ALL)
                 .fallbackToDestructiveMigration()
                 .build().also { INSTANCE = it }
         }

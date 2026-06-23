@@ -23,4 +23,6 @@ object DatabaseMigrations {
             )
         }
     }
+
+    val ALL = arrayOf(MIGRATION_1_2)
 }
