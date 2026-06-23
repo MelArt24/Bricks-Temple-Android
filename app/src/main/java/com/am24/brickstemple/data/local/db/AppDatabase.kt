@@ -13,7 +13,7 @@ import com.am24.brickstemple.data.local.entities.CartItemEntity
         CartItemEntity::class
     ],
     version = 2,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
