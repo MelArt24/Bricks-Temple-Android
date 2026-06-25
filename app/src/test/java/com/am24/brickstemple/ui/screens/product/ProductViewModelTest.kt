@@ -181,6 +181,45 @@ class ProductViewModelTest {
     }
 
     @Test
+    fun `applyFilters keeps selected category type in filter state`() = runTest {
+        val repo = FakeProductRepository()
+        repo.filteredProducts = listOf(product(id = 2, type = "minifigure"))
+        val vm = ProductViewModel(repo)
+        advanceUntilIdle()
+
+        vm.applyFilters(type = "minifigure", minPrice = "10", maxPrice = null, year = null)
+        advanceUntilIdle()
+
+        assertEquals(listOf("minifigure"), repo.getFilteredTypes)
+        assertEquals("minifigure", vm.uiState.value.filters.type)
+        assertEquals("10", vm.uiState.value.filters.minPrice)
+        assertEquals(2, vm.uiState.value.filteredProducts.products.first().id)
+    }
+
+    @Test
+    fun `setSort reapplies filters with selected category type`() = runTest {
+        val repo = FakeProductRepository()
+        repo.filteredProducts = listOf(
+            product(id = 2, type = "minifigure", price = 20.0),
+            product(id = 3, type = "minifigure", price = 10.0)
+        )
+        val vm = ProductViewModel(repo)
+        advanceUntilIdle()
+
+        vm.applyFilters(type = "minifigure", minPrice = "5", maxPrice = null, year = null)
+        advanceUntilIdle()
+
+        vm.setSort(SortOrder.PRICE_ASC)
+        advanceUntilIdle()
+
+        assertEquals(listOf("minifigure", "minifigure"), repo.getFilteredTypes)
+        assertEquals(
+            listOf(3, 2),
+            vm.uiState.value.filteredProducts.products.map { it.id }
+        )
+    }
+
+    @Test
     fun `loadById cancellation does not expose error message`() = runTest {
         val repo = FakeProductRepository()
         repo.getByIdError = CancellationException("Cancelled")
@@ -297,11 +336,15 @@ class ProductViewModelTest {
     }
 
     private companion object {
-        fun product(id: Int) = Product(
+        fun product(
+            id: Int,
+            type: String = "set",
+            price: Double = id.toDouble()
+        ) = Product(
             id = id,
             name = "Product $id",
-            type = "set",
-            price = id.toDouble()
+            type = type,
+            price = price
         )
     }
 }

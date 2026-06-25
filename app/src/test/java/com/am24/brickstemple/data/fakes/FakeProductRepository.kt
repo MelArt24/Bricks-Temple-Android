@@ -11,6 +11,8 @@ class FakeProductRepository : ProductRepository {
     var searchLocalError: Exception? = null
     var getByIdError: Exception? = null
     var getFilteredError: Exception? = null
+    var filteredProducts: List<Product> = emptyList()
+    val getFilteredTypes = mutableListOf<String?>()
 
     override suspend fun getCachedByType(type: String): List<Product> {
         cachedByTypeError?.let { throw it }
@@ -38,8 +40,9 @@ class FakeProductRepository : ProductRepository {
         maxPrice: String?,
         year: String?
     ): List<Product> {
+        getFilteredTypes += type
         getFilteredError?.let { throw it }
-        return emptyList()
+        return filteredProducts
     }
 
     var shouldThrow = false

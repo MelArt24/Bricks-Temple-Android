@@ -16,6 +16,7 @@ data class ProductResultUiState(
 )
 
 data class FilterState(
+    val type: String? = null,
     val minPrice: String? = null,
     val maxPrice: String? = null,
     val year: String? = null
@@ -198,7 +199,7 @@ class ProductViewModel(
 
         val state = _uiState.value
         val f = state.filters
-        val type = fTypeFromFilters()
+        val type = f.type.orEmpty()
 
         if (f.minPrice != null || f.maxPrice != null || f.year != null) {
             applyFilters(type, f.minPrice, f.maxPrice, f.year)
@@ -219,12 +220,6 @@ class ProductViewModel(
         }
     }
 
-    private fun fTypeFromFilters(): String {
-        return when (_uiState.value.filters) {
-            else -> ""
-        }
-    }
-
     fun applyFilters(
         type: String,
         minPrice: String?,
@@ -237,7 +232,7 @@ class ProductViewModel(
             }
 
             _uiState.update {
-                it.copy(filters = FilterState(minPrice, maxPrice, year))
+                it.copy(filters = FilterState(type, minPrice, maxPrice, year))
             }
 
             try {
