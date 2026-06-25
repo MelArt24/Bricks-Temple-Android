@@ -53,20 +53,15 @@ fun ProductCategoryScreen(
         else -> productState.others
     }
 
-    val filters = productState.filters
     val filteredState = productState.filteredProducts
     val sortOrder = productState.sortOrder
-
-    val hasFilters = filters.minPrice != null ||
-            filters.maxPrice != null ||
-            filters.year != null
+    val hasFiltersForType = productViewModel.hasActiveFiltersFor(type)
 
     val wishlist = wishlistViewModel.wishlist.collectAsState().value
     val updating = wishlistViewModel.isUpdating.collectAsState().value
     val cart = cartViewModel.cart.collectAsState().value
 
-    val baseProducts =
-        if (hasFilters) filteredState.products else state.products
+    val baseProducts = productViewModel.productsForCategory(type).products
 
     val searchQuery = productState.searchQuery
 
@@ -99,7 +94,7 @@ fun ProductCategoryScreen(
     ) {
 
         when {
-            (state.isLoading || filteredState.isLoading) && productsToShow.isEmpty() -> {
+            (state.isLoading || (hasFiltersForType && filteredState.isLoading)) && productsToShow.isEmpty() -> {
                 Box(
                     Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -108,7 +103,7 @@ fun ProductCategoryScreen(
                 }
             }
 
-            (state.error != null || filteredState.error != null) && productsToShow.isEmpty() -> {
+            (state.error != null || (hasFiltersForType && filteredState.error != null)) && productsToShow.isEmpty() -> {
                 Box(
                     Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center

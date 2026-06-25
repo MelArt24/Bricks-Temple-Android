@@ -220,6 +220,37 @@ class ProductViewModelTest {
     }
 
     @Test
+    fun `productsForCategory does not expose filtered results from another category`() = runTest {
+        val repo = FakeProductRepository()
+        repo.cachedByTypeProducts = mapOf(
+            "set" to listOf(
+                product(id = 1, type = "set", price = 800.0),
+                product(id = 4, type = "set", price = 100.0)
+            ),
+            "minifigure" to listOf(
+                product(id = 2, type = "minifigure", price = 20.0)
+            )
+        )
+        repo.filteredProducts = listOf(product(id = 1, type = "set", price = 800.0))
+        val vm = ProductViewModel(repo)
+        advanceUntilIdle()
+
+        vm.applyFilters(type = "set", minPrice = "500", maxPrice = "1000", year = null)
+        advanceUntilIdle()
+
+        assertTrue(vm.hasActiveFiltersFor("set"))
+        assertFalse(vm.hasActiveFiltersFor("minifigure"))
+        assertEquals(
+            listOf(1),
+            vm.productsForCategory("set").products.map { it.id }
+        )
+        assertEquals(
+            listOf(2),
+            vm.productsForCategory("minifigure").products.map { it.id }
+        )
+    }
+
+    @Test
     fun `loadById cancellation does not expose error message`() = runTest {
         val repo = FakeProductRepository()
         repo.getByIdError = CancellationException("Cancelled")

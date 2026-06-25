@@ -20,7 +20,10 @@ data class FilterState(
     val minPrice: String? = null,
     val maxPrice: String? = null,
     val year: String? = null
-)
+) {
+    fun hasActiveFilters(): Boolean =
+        minPrice != null || maxPrice != null || year != null
+}
 
 enum class SortOrder {
     PRICE_ASC,
@@ -82,6 +85,18 @@ class ProductViewModel(
     fun setSearchQuery(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
     }
+
+    fun hasActiveFiltersFor(type: String): Boolean {
+        val filters = _uiState.value.filters
+        return filters.type == type && filters.hasActiveFilters()
+    }
+
+    fun productsForCategory(type: String): ProductResultUiState =
+        if (hasActiveFiltersFor(type)) {
+            _uiState.value.filteredProducts
+        } else {
+            categoryState(type)
+        }
 
     fun matchesQuery(product: Product, query: String): Boolean {
         if (query.isBlank()) return true
@@ -201,7 +216,7 @@ class ProductViewModel(
         val f = state.filters
         val type = f.type.orEmpty()
 
-        if (f.minPrice != null || f.maxPrice != null || f.year != null) {
+        if (f.hasActiveFilters()) {
             applyFilters(type, f.minPrice, f.maxPrice, f.year)
             return
         }
