@@ -251,6 +251,41 @@ class ProductViewModelTest {
     }
 
     @Test
+    fun `resetFilters clears active filters and restores category products`() = runTest {
+        val repo = FakeProductRepository()
+        repo.cachedByTypeProducts = mapOf(
+            "set" to listOf(
+                product(id = 1, type = "set", price = 800.0),
+                product(id = 4, type = "set", price = 100.0)
+            )
+        )
+        repo.filteredProducts = listOf(product(id = 1, type = "set", price = 800.0))
+        val vm = ProductViewModel(repo)
+        advanceUntilIdle()
+
+        vm.setSearchQuery("falcon")
+        vm.applyFilters(type = "set", minPrice = "500", maxPrice = "1000", year = null)
+        advanceUntilIdle()
+
+        assertTrue(vm.hasActiveFiltersFor("set"))
+        assertEquals(
+            listOf(1),
+            vm.productsForCategory("set").products.map { it.id }
+        )
+
+        vm.resetFilters()
+
+        assertEquals(FilterState(), vm.uiState.value.filters)
+        assertEquals(ProductResultUiState(), vm.uiState.value.filteredProducts)
+        assertFalse(vm.hasActiveFiltersFor("set"))
+        assertEquals(
+            listOf(1, 4),
+            vm.productsForCategory("set").products.map { it.id }
+        )
+        assertEquals("falcon", vm.searchQuery.value)
+    }
+
+    @Test
     fun `loadById cancellation does not expose error message`() = runTest {
         val repo = FakeProductRepository()
         repo.getByIdError = CancellationException("Cancelled")

@@ -86,6 +86,15 @@ class ProductViewModel(
         _uiState.update { it.copy(searchQuery = query) }
     }
 
+    fun resetFilters() {
+        _uiState.update {
+            it.copy(
+                filters = FilterState(),
+                filteredProducts = ProductResultUiState()
+            )
+        }
+    }
+
     fun hasActiveFiltersFor(type: String): Boolean {
         val filters = _uiState.value.filters
         return filters.type == type && filters.hasActiveFilters()

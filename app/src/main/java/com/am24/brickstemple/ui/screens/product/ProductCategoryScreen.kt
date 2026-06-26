@@ -92,6 +92,18 @@ fun ProductCategoryScreen(
             .fillMaxSize()
             .padding(paddingValues)
     ) {
+        if (hasFiltersForType) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = productViewModel::resetFilters) {
+                    Text("Clear filters")
+                }
+            }
+        }
 
         when {
             (state.isLoading || (hasFiltersForType && filteredState.isLoading)) && productsToShow.isEmpty() -> {
@@ -129,12 +141,13 @@ fun ProductCategoryScreen(
     if (showFilters) {
         FilterBottomSheet(
             type = type,
+            hasActiveFilters = hasFiltersForType,
             onApply = { min, max, year ->
                 productViewModel.applyFilters(type, min, max, year)
                 showFilters = false
             },
             onReset = {
-                productViewModel.applyFilters(type, null, null, null)
+                productViewModel.resetFilters()
                 showFilters = false
             },
             onDismiss = { showFilters = false }
@@ -196,6 +209,7 @@ fun SortBottomSheet(
 @Composable
 fun FilterBottomSheet(
     type: String,
+    hasActiveFilters: Boolean,
     onApply: (String?, String?, String?) -> Unit,
     onReset: () -> Unit,
     onDismiss: () -> Unit
@@ -250,12 +264,14 @@ fun FilterBottomSheet(
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Apply filters") }
 
-            Spacer(Modifier.height(8.dp))
+            if (hasActiveFilters) {
+                Spacer(Modifier.height(8.dp))
 
-            TextButton(
-                onClick = onReset,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Reset filters") }
+                TextButton(
+                    onClick = onReset,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Reset filters") }
+            }
 
             Spacer(Modifier.height(16.dp))
         }
