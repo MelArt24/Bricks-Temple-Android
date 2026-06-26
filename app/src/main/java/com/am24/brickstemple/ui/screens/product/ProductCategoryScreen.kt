@@ -11,7 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.ui.components.ProductItemCard
-import com.am24.brickstemple.ui.navigation.AppNavGraphCallbacks
+import com.am24.brickstemple.ui.navigation.ProductCategorySheetRequest
 import com.am24.brickstemple.ui.navigation.Screen
 import com.am24.brickstemple.ui.screens.cart.CartViewModel
 import com.am24.brickstemple.ui.screens.wishlist.WishlistViewModel
@@ -26,7 +26,11 @@ fun ProductCategoryScreen(
     productViewModel: ProductViewModel,
     wishlistViewModel: WishlistViewModel,
     cartViewModel: CartViewModel,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    sortSheetRequest: ProductCategorySheetRequest?,
+    filterSheetRequest: ProductCategorySheetRequest?,
+    onSortSheetRequestConsumed: () -> Unit,
+    onFilterSheetRequestConsumed: () -> Unit
 ) {
     if (category == null) {
         Text("Invalid category", modifier = Modifier.padding(paddingValues))
@@ -82,9 +86,18 @@ fun ProductCategoryScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        AppNavGraphCallbacks.openSort = { showSort = true }
-        AppNavGraphCallbacks.openFilters = { showFilters = true }
+    LaunchedEffect(sortSheetRequest?.id) {
+        if (sortSheetRequest?.category == category) {
+            showSort = true
+            onSortSheetRequestConsumed()
+        }
+    }
+
+    LaunchedEffect(filterSheetRequest?.id) {
+        if (filterSheetRequest?.category == category) {
+            showFilters = true
+            onFilterSheetRequestConsumed()
+        }
     }
 
     Column(

@@ -25,10 +25,10 @@ import com.am24.brickstemple.ui.screens.orders.OrderViewModel
 import com.am24.brickstemple.ui.screens.product.ProductViewModel
 import com.am24.brickstemple.ui.screens.wishlist.WishlistViewModel
 
-object AppNavGraphCallbacks {
-    var openSort: () -> Unit = {}
-    var openFilters: () -> Unit = {}
-}
+data class ProductCategorySheetRequest(
+    val id: Int,
+    val category: String
+)
 
 @Composable
 fun AppNavGraph(
@@ -39,10 +39,11 @@ fun AppNavGraph(
     wishlistViewModel: WishlistViewModel,
     cartViewModel: CartViewModel,
     orderViewModel: OrderViewModel,
-    openSort: () -> Unit,
-    openFilters: () -> Unit,
-
-    ) {
+    sortSheetRequest: ProductCategorySheetRequest?,
+    filterSheetRequest: ProductCategorySheetRequest?,
+    onSortSheetRequestConsumed: () -> Unit,
+    onFilterSheetRequestConsumed: () -> Unit
+) {
     NavHost(
         navController = navController,
         startDestination = Screen.Splash.route
@@ -126,7 +127,11 @@ fun AppNavGraph(
                 productViewModel = productViewModel,
                 paddingValues = paddingValues,
                 cartViewModel = cartViewModel,
-                wishlistViewModel = wishlistViewModel
+                wishlistViewModel = wishlistViewModel,
+                sortSheetRequest = sortSheetRequest,
+                filterSheetRequest = filterSheetRequest,
+                onSortSheetRequestConsumed = onSortSheetRequestConsumed,
+                onFilterSheetRequestConsumed = onFilterSheetRequestConsumed
             )
         }
 

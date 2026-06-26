@@ -23,7 +23,7 @@ import com.am24.brickstemple.ui.navigation.AppNavGraph
 import com.am24.brickstemple.ui.components.BottomBar
 import com.am24.brickstemple.ui.components.DrawerContent
 import com.am24.brickstemple.ui.components.TopBar
-import com.am24.brickstemple.ui.navigation.AppNavGraphCallbacks
+import com.am24.brickstemple.ui.navigation.ProductCategorySheetRequest
 import com.am24.brickstemple.ui.navigation.Screen
 import com.am24.brickstemple.ui.navigation.shouldShowBackArrow
 import com.am24.brickstemple.ui.navigation.shouldShowBottomBar
@@ -75,8 +75,12 @@ fun App() {
         val navController = rememberNavController()
         val navBackStackEntry = navController.currentBackStackEntryAsState().value
         val currentRoute = navBackStackEntry?.destination?.route
+        val currentCategory = navBackStackEntry?.arguments?.getString("category")
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         val scope = rememberCoroutineScope()
+        var nextSheetRequestId by remember { mutableStateOf(0) }
+        var sortSheetRequest by remember { mutableStateOf<ProductCategorySheetRequest?>(null) }
+        var filterSheetRequest by remember { mutableStateOf<ProductCategorySheetRequest?>(null) }
 
         val authViewModel: AuthViewModel = koinViewModel()
         val wishlistViewModel: WishlistViewModel = koinViewModel()
@@ -118,10 +122,22 @@ fun App() {
 
         val topBarActions: @Composable RowScope.() -> Unit = if (isCategory) {
             {
-                IconButton(onClick = { AppNavGraphCallbacks.openSort?.invoke() }) {
+                IconButton(
+                    onClick = {
+                        currentCategory?.let {
+                            sortSheetRequest = ProductCategorySheetRequest(++nextSheetRequestId, it)
+                        }
+                    }
+                ) {
                     Icon(Icons.Default.Sort, "Sort")
                 }
-                IconButton(onClick = { AppNavGraphCallbacks.openFilters?.invoke() }) {
+                IconButton(
+                    onClick = {
+                        currentCategory?.let {
+                            filterSheetRequest = ProductCategorySheetRequest(++nextSheetRequestId, it)
+                        }
+                    }
+                ) {
                     Icon(Icons.Default.FilterList, "Filters")
                 }
             }
@@ -181,8 +197,10 @@ fun App() {
                     wishlistViewModel = wishlistViewModel,
                     cartViewModel = cartViewModel,
                     orderViewModel = orderViewModel,
-                    openSort = { AppNavGraphCallbacks.openSort?.invoke() },
-                    openFilters = { AppNavGraphCallbacks.openFilters?.invoke() }
+                    sortSheetRequest = sortSheetRequest,
+                    filterSheetRequest = filterSheetRequest,
+                    onSortSheetRequestConsumed = { sortSheetRequest = null },
+                    onFilterSheetRequestConsumed = { filterSheetRequest = null }
                 )
             }
         }
