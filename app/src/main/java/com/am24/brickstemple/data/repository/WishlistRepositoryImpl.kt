@@ -195,11 +195,6 @@ open class WishlistRepositoryImpl(
             if (pendingJobs[productId] === job) {
                 pendingJobs.remove(productId)
             }
-
-// I let this code to be commented and not deleted
-//            if (pendingJobs.isEmpty()) {
-//                refresh()
-//            }
         }
 
         pendingJobs[productId] = job
