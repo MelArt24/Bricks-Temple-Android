@@ -5,6 +5,7 @@ import com.am24.brickstemple.domain.error.AppError
 import com.am24.brickstemple.domain.error.AppException
 import com.am24.brickstemple.domain.repository.CartRepository
 import com.am24.brickstemple.domain.repository.ProductRepository
+import com.am24.brickstemple.domain.usecase.cart.UpdateCartQuantityUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -51,7 +52,7 @@ class CartViewModelTest {
         coEvery { repo.clearCart() } returns Unit
         coEvery { productRepository.getCachedByIds(any()) } returns emptyList()
 
-        viewModel = CartViewModel(repo, productRepository)
+        viewModel = createViewModel()
     }
 
     @Test
@@ -101,7 +102,7 @@ class CartViewModelTest {
         val cartState = MutableStateFlow(mapOf(5 to 2))
         every { repo.cart } returns cartState
 
-        viewModel = CartViewModel(repo, productRepository)
+        viewModel = createViewModel()
         launchUiStateCollector()
 
         coEvery { repo.checkout() } throws AppException(
@@ -221,5 +222,13 @@ class CartViewModelTest {
         backgroundScope.launch {
             viewModel.uiState.collect()
         }
+    }
+
+    private fun createViewModel(): CartViewModel {
+        return CartViewModel(
+            cartRepository = repo,
+            productRepository = productRepository,
+            updateCartQuantityUseCase = UpdateCartQuantityUseCase(repo)
+        )
     }
 }

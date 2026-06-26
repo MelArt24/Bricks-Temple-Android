@@ -7,6 +7,7 @@ import com.am24.brickstemple.domain.error.AppException
 import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.domain.repository.CartRepository
 import com.am24.brickstemple.domain.repository.ProductRepository
+import com.am24.brickstemple.domain.usecase.cart.UpdateCartQuantityUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -40,7 +41,8 @@ private data class CartRepositoryState(
 
 class CartViewModel(
     private val cartRepository: CartRepository,
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val updateCartQuantityUseCase: UpdateCartQuantityUseCase
 ) : ViewModel() {
 
     val cart = cartRepository.cart
@@ -170,16 +172,10 @@ class CartViewModel(
 
     fun updateQuantity(productId: Int, delta: Int) {
         viewModelScope.launch {
-            val currentQty = cartRepository.cart.value[productId] ?: 0
-            val newQty = currentQty + delta
-
             _cartUiState.update { it.copy(updatingQuantityProductId = productId) }
 
             try {
-                when {
-                    newQty <= 0 -> cartRepository.removeCompletely(productId)
-                    else -> cartRepository.updateQuantity(productId, newQty)
-                }
+                updateCartQuantityUseCase(productId, delta)
             } catch (e: Exception) {
                 handleError(e)
             } finally {
