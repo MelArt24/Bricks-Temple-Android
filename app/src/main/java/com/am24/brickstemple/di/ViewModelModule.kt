@@ -13,7 +13,7 @@ val viewModelModule = module {
     viewModel { ProductViewModel(repo = get()) }
     viewModel { CartViewModel(cartRepository = get(), productRepository = get()) }
     viewModel { WishlistViewModel(repo = get(), productRepository = get()) }
-    viewModel { OrderViewModel(repo = get(), productRepository = get()) }
+    viewModel { OrderViewModel(repo = get(), loadOrderDetailsUseCase = get()) }
     viewModel { AuthViewModel(authRepository = get()) }
     viewModel { ThemeViewModel(store = get()) }
 }

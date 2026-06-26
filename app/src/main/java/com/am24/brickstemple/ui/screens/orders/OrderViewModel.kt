@@ -4,11 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.am24.brickstemple.domain.model.Order
 import com.am24.brickstemple.domain.model.OrderDetails
-import com.am24.brickstemple.domain.model.OrderItem
-import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.domain.error.AppException
 import com.am24.brickstemple.domain.repository.OrderRepository
-import com.am24.brickstemple.domain.repository.ProductRepository
+import com.am24.brickstemple.domain.usecase.order.FullOrderItem
+import com.am24.brickstemple.domain.usecase.order.LoadOrderDetailsUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,13 +24,13 @@ data class OrderHistoryUiState(
 data class OrderDetailsUiState(
     val isLoading: Boolean = false,
     val details: OrderDetails? = null,
-    val fullItems: List<OrderViewModel.FullOrderItem> = emptyList(),
+    val fullItems: List<FullOrderItem> = emptyList(),
     val errorMessage: String? = null
 )
 
 class OrderViewModel(
     private val repo: OrderRepository,
-    private val productRepository: ProductRepository
+    private val loadOrderDetailsUseCase: LoadOrderDetailsUseCase
 ) : ViewModel() {
 
     private val _historyState = MutableStateFlow(OrderHistoryUiState())
@@ -40,17 +39,14 @@ class OrderViewModel(
     private val _detailsState = MutableStateFlow(OrderDetailsUiState())
     val detailsState: StateFlow<OrderDetailsUiState> = _detailsState.asStateFlow()
 
-    data class FullOrderItem(
-        val item: OrderItem,
-        val product: Product?
-    )
-
     fun loadOrderDetailsFull() {
         viewModelScope.launch {
             val details = detailsState.value.details ?: return@launch
 
             try {
-                _detailsState.update { it.copy(fullItems = details.toFullItems()) }
+                _detailsState.update {
+                    it.copy(fullItems = loadOrderDetailsUseCase.hydrateItems(details))
+                }
             } catch (e: Exception) {
                 _detailsState.update { it.copy(errorMessage = e.toUserMessage()) }
             }
@@ -78,24 +74,19 @@ class OrderViewModel(
             _detailsState.update { it.copy(isLoading = true) }
             try {
                 _detailsState.update { it.copy(errorMessage = null) }
-                val detail = repo.getOrderDetails(id)
-                _detailsState.update { it.copy(details = detail) }
-                _detailsState.update { it.copy(fullItems = detail.toFullItems()) }
+                val detailsWithProducts = loadOrderDetailsUseCase(id)
+                _detailsState.update {
+                    it.copy(
+                        details = detailsWithProducts.details,
+                        fullItems = detailsWithProducts.fullItems
+                    )
+                }
 
             } catch (e: Exception) {
                 _detailsState.update { it.copy(errorMessage = e.toUserMessage()) }
             } finally {
                 _detailsState.update { it.copy(isLoading = false) }
             }
-        }
-    }
-
-    private suspend fun OrderDetails.toFullItems(): List<FullOrderItem> {
-        return items.map { item ->
-            FullOrderItem(
-                item = item,
-                product = productRepository.getLocalById(item.productId)
-            )
         }
     }
 

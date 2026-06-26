@@ -10,6 +10,7 @@ import com.am24.brickstemple.domain.model.PagedResult
 import com.am24.brickstemple.domain.model.Product
 import com.am24.brickstemple.domain.repository.OrderRepository
 import com.am24.brickstemple.domain.repository.ProductRepository
+import com.am24.brickstemple.domain.usecase.order.LoadOrderDetailsUseCase
 import junit.framework.TestCase.assertEquals
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -32,7 +33,7 @@ class OrderViewModelTest {
         val order = order()
         val viewModel = OrderViewModel(
             repo = FakeOrderRepository(orders = PagedResult(1, 10, 1, listOf(order))),
-            productRepository = FakeProductRepository()
+            loadOrderDetailsUseCase = loadOrderDetailsUseCase()
         )
 
         viewModel.loadOrders()
@@ -47,7 +48,7 @@ class OrderViewModelTest {
     fun `loadOrders exposes error and keeps existing orders on failed refresh`() = runTest {
         val existingOrder = order(id = 1)
         val repo = FakeOrderRepository(orders = PagedResult(1, 10, 1, listOf(existingOrder)))
-        val viewModel = OrderViewModel(repo, FakeProductRepository())
+        val viewModel = OrderViewModel(repo, loadOrderDetailsUseCase(repo))
 
         viewModel.loadOrders()
         advanceUntilIdle()
@@ -67,9 +68,13 @@ class OrderViewModelTest {
         val item = orderItem(productId = 22)
         val details = OrderDetails(order = order(), items = listOf(item))
         val product = product(id = 22)
+        val repo = FakeOrderRepository(details = details)
         val viewModel = OrderViewModel(
-            repo = FakeOrderRepository(details = details),
-            productRepository = FakeProductRepository(products = mapOf(22 to product))
+            repo = repo,
+            loadOrderDetailsUseCase = loadOrderDetailsUseCase(
+                repo = repo,
+                productRepository = FakeProductRepository(products = mapOf(22 to product))
+            )
         )
 
         viewModel.loadOrderDetails(7)
@@ -87,7 +92,7 @@ class OrderViewModelTest {
     fun `loadOrderDetails exposes error and keeps existing details on failed refresh`() = runTest {
         val existingDetails = OrderDetails(order = order(id = 1), items = listOf(orderItem()))
         val repo = FakeOrderRepository(details = existingDetails)
-        val viewModel = OrderViewModel(repo, FakeProductRepository())
+        val viewModel = OrderViewModel(repo, loadOrderDetailsUseCase(repo))
 
         viewModel.loadOrderDetails(1)
         advanceUntilIdle()
@@ -106,7 +111,7 @@ class OrderViewModelTest {
     fun `loadOrders cancellation does not expose error message`() = runTest {
         val viewModel = OrderViewModel(
             repo = FakeOrderRepository(ordersError = CancellationException("Cancelled")),
-            productRepository = FakeProductRepository()
+            loadOrderDetailsUseCase = loadOrderDetailsUseCase()
         )
 
         viewModel.loadOrders()
@@ -118,9 +123,10 @@ class OrderViewModelTest {
 
     @Test
     fun `loadOrderDetails cancellation does not expose error message`() = runTest {
+        val repo = FakeOrderRepository(detailsError = CancellationException("Cancelled"))
         val viewModel = OrderViewModel(
-            repo = FakeOrderRepository(detailsError = CancellationException("Cancelled")),
-            productRepository = FakeProductRepository()
+            repo = repo,
+            loadOrderDetailsUseCase = loadOrderDetailsUseCase(repo)
         )
 
         viewModel.loadOrderDetails(7)
@@ -134,12 +140,16 @@ class OrderViewModelTest {
     fun `loadOrders does not mutate details state`() = runTest {
         val details = OrderDetails(order = order(id = 3), items = listOf(orderItem(productId = 22)))
         val order = order(id = 9)
+        val repo = FakeOrderRepository(
+            orders = PagedResult(1, 10, 1, listOf(order)),
+            details = details
+        )
         val viewModel = OrderViewModel(
-            repo = FakeOrderRepository(
-                orders = PagedResult(1, 10, 1, listOf(order)),
-                details = details
-            ),
-            productRepository = FakeProductRepository(products = mapOf(22 to product(id = 22)))
+            repo = repo,
+            loadOrderDetailsUseCase = loadOrderDetailsUseCase(
+                repo = repo,
+                productRepository = FakeProductRepository(products = mapOf(22 to product(id = 22)))
+            )
         )
 
         viewModel.loadOrderDetails(3)
@@ -161,12 +171,16 @@ class OrderViewModelTest {
     fun `loadOrderDetails does not mutate history state`() = runTest {
         val existingOrder = order(id = 4)
         val details = OrderDetails(order = order(id = 7), items = listOf(orderItem(productId = 22)))
+        val repo = FakeOrderRepository(
+            orders = PagedResult(1, 10, 1, listOf(existingOrder)),
+            details = details
+        )
         val viewModel = OrderViewModel(
-            repo = FakeOrderRepository(
-                orders = PagedResult(1, 10, 1, listOf(existingOrder)),
-                details = details
-            ),
-            productRepository = FakeProductRepository(products = mapOf(22 to product(id = 22)))
+            repo = repo,
+            loadOrderDetailsUseCase = loadOrderDetailsUseCase(
+                repo = repo,
+                productRepository = FakeProductRepository(products = mapOf(22 to product(id = 22)))
+            )
         )
 
         viewModel.loadOrders()
@@ -187,7 +201,7 @@ class OrderViewModelTest {
     fun `initial states are independent`() {
         val viewModel = OrderViewModel(
             repo = FakeOrderRepository(),
-            productRepository = FakeProductRepository()
+            loadOrderDetailsUseCase = loadOrderDetailsUseCase()
         )
 
         assertTrue(viewModel.historyState.value.orders.isEmpty())
@@ -233,6 +247,14 @@ class OrderViewModelTest {
     }
 
     private companion object {
+        fun loadOrderDetailsUseCase(
+            repo: FakeOrderRepository = FakeOrderRepository(),
+            productRepository: FakeProductRepository = FakeProductRepository()
+        ) = LoadOrderDetailsUseCase(
+            orderRepository = repo,
+            productRepository = productRepository
+        )
+
         fun order(id: Int = 7) = Order(
             id = id,
             userId = 3,
